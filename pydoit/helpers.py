@@ -1,7 +1,11 @@
 import os
 from glob import glob# ls =  partial(glob.glob1, ".")
-from functools import wraps
-
+from functools import wraps, partial
+from toolz import compose
+forward = compose(sorted, partial(glob1, pattern="*_R1_*"))
+reverse = compose(sorted, partial(glob1, pattern="*_R2_*"))
+def _unpaired(dir): return set(glob1(dir, '*')) - set(forward(dir) + reverse(dir))
+def group_fastqs(dir): return forward(dir), reverse(dir), _unpaired(dir)
 
 class F (str):
   """represents a file"""

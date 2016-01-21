@@ -24,22 +24,18 @@ def task_merge_bam():
     return { 'task_dep' : 'mapping'}
 
 
-DIR="."
-R1s, R2s, unpaireds =  group_fastqs(DIR)
-R1, R2, unpaired, paired = map(F, ["R1", "R2", "unpaired", "paired"])
-
-forward = compose(sorted, partial(glob1, pattern="*_R1_*"))
-reverse = compose(sorted, partial(glob1, pattern="*_R2_*"))
-def unpaired(dir): return set(glob1(dir, '*')) - set(forward(dir) + reverse(dir))
-def group_fastqs(dir): return forward(dir), reverse(dir), unpaired(dir)
-
+''' examples of programmatically created tasks '''
 merge_files = D({
     'actions' : ['cat %(dependencies) %(targets)']})
 
 # _.cutdadapt = lambda x: x.cudadapt
 task_R1 = lambda: merge_files.assoc(file_dep=map(_.cutadapt, R1s), targets=R1.fastq)
 task_R2 = lambda: merge_files.assoc(file_dep=map(_.cutadapt, R2s), targets=R2.fastq)
-task_unpaired  = lambda: merge_files.assoc(file_dep=map(_.cutadapt, unpaireds), targetsunpaired.fastq)
+task_unpaired  = lambda: merge_files.assoc(file_dep=map(_.cutadapt, unpaireds), targets=unpaired.fastq)
+
+DIR="."
+R1s, R2s, unpaireds =  group_fastqs(DIR)
+R1, R2, unpaired, paired = map(F, ["R1", "R2", "unpaired", "paired"])
 
 
 mapping =   D({'file_dep' : [opts.ref],
