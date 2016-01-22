@@ -26,7 +26,7 @@ def task_merge_bam():
 
 ''' examples of programmatically created tasks '''
 merge_files = D({
-    'actions' : ['cat %(dependencies) %(targets)']})
+    'actions' : ['cat %(dependencies) > %(targets)']})
 
 # _.cutdadapt = lambda x: x.cudadapt
 task_R1 = lambda: merge_files.assoc(file_dep=map(_.cutadapt, R1s), targets=R1.fastq)
@@ -69,8 +69,7 @@ def cutadapt_paired(dependencies, targets, quality):
     sh.cutadapt(o=targets[0], p=targets[1], q="{0},{0}".format(quality), *dependencies)
 
 def cutadapt_up(dependencies, targets, quality):
-    sh.cutadapt(q=quality, o=targets[0], *dependencies)
-
+    sh.cutadapt(q=quality, o=targets[0], *dependencies) 
     #'actions': ["cutadapt %(dependencies)"] # not work
 
 #fwd, rev <- fwd, rev : cutadapt_paired
