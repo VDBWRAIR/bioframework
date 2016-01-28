@@ -1,0 +1,11 @@
+#!/usr/bin/env jip
+# Convert sam input to bam
+#
+# Usage:
+#   sam_to_bam [-i <input>] [-o <output>]
+#
+# Options:
+#   -i, --input <input>    Input sam [Default: stdin]
+#   -o, --output <output>  Output bam [Default: stdout]
+
+samtools view -bh - ${output|arg(">")}

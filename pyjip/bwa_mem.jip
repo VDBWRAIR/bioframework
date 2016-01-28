@@ -1,0 +1,12 @@
+#!/usr/bin/env jip
+# bwa mem
+#
+# Usage:
+#   bwa_mem -r <reference> -f <fastq>... [-o <output>]
+#
+# Options:
+#   -r, --reference <reference>  Fasta reference path
+#   -o, --output <output>        Output path [Default: stdout]
+#   -f, --fastq <fastq>...       Fastq files to map to reference
+
+bwa mem ${reference} ${fastq}

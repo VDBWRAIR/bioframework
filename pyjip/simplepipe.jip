@@ -1,0 +1,22 @@
+#!/usr/bin/env jip
+#
+# Simple pipeline to run cutadapt, bwa index, bwa mem, samtools view
+#
+# Usage:
+#   simplepipe -r <reference> -f <fastq>... [-q <qualcutoff>...] [-o <output>]
+#
+# Options:
+#   -r, --reference <reference>       Reference file to index and map to
+#   -f, --fastq <fastq>...            List of fastq files to process
+#   -q, --qualcutoff <qualcutoff>...  The quality cutoff for the read trimming
+#                                     [Default: 25]
+#   -o, --output <output>             The output bam file
+#                                     [Default: mapped.bam]
+
+#%begin pipeline
+trimmed = run('cutadapt', fastq=options['fastq'], qualcutoff=options['qualcutoff'])
+index_ref = run('bwa_index', reference=options['reference'])
+sam = run('bwa_mem', reference=reference, fastq=[trimmed.output_r1, trimmed.output_r2])
+bam = run('sam_to_bam', input=sam, output=options['output'])
+index_ref >> sam
+#%end

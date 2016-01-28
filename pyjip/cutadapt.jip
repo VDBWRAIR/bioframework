@@ -1,0 +1,31 @@
+#!/usr/bin/env jip
+# Runs cutadapt with only quality filter
+#
+# usage:
+#   cutadapt [-o <outsuffix>] -q <qualcutoff>... -f <fastq>...
+#
+# Options:
+#   -f, --fastq <fastq>            The input fastq file[s]
+#   -q, --qualcutoff <qualcutoff>  The quality cutoff [Default: 25]
+#   -o, --outsuffix <outsuffix>    The output suffix [Default: .cutadapt]
+
+#%begin init
+add_output('output_r1', '', short='-o')
+add_output('output_r2', '', short='-p')
+#%end
+
+#%begin setup
+options['output_r1'].set('output_r1' + options['outsuffix'].get())
+if len(options['fastq']) == 2:
+    options['qualcutoff'].join = ','
+    if len(options['qualcutoff']) != len(options['fastq']):
+        qualcutoff = options['qualcutoff'].value[0]
+        options['qualcutoff'].set([qualcutoff,qualcutoff])
+    options['output_r2'].set('output_r2' + options['outsuffix'].get())
+#%end
+
+#%begin validate
+assert len(options['fastq']) == len(options['qualcutoff']), validation_error('qualcuttoff must have same number of entries as fastq')
+#%end
+
+cutadapt ${output_r1|arg} ${output_r2|arg|else('')} -q ${qualcutoff} ${fastq}
