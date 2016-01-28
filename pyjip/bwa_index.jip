@@ -14,13 +14,7 @@ options['output'].default = "${reference}.bwt"
 #%end
 
 #%begin validate
-import os
-try:
-    os.makedirs(options['output'].get())
-except OSError as e:
-    if e.errno != 17:
-        validation_error('Failed to create "${output}": ' + str(e))
 #%end
 
-cp ${reference|abs} ${output}
+cp ${reference|abs} ${output|ext}
 bwa index ${output|ext}

@@ -3,7 +3,7 @@
 # Simple pipeline to run cutadapt, bwa index, bwa mem, samtools view
 #
 # Usage:
-#   simplepipe -r <reference> -f <fastq>... [-q <qualcutoff>...] [-o <output>]
+#   simplepipe -r <reference> -f <fastq>... [-q <qualcutoff>...] [-o <output>] [--pipe]
 #
 # Options:
 #   -r, --reference <reference>       Reference file to index and map to
@@ -12,11 +12,14 @@
 #                                     [Default: 25]
 #   -o, --output <output>             The output bam file
 #                                     [Default: mapped.bam]
+#   -p, --pipe                        To use named pipe(have to submit jip job for this to work)
+#                                     [Default: False]
 
 #%begin pipeline
-trimmed = run('cutadapt', fastq=options['fastq'], qualcutoff=options['qualcutoff'])
+trimmed = run('cutadapt', fastq=options['fastq'], qualcutoff=options['qualcutoff'], pipe=options['pipe'])
 index_ref = run('bwa_index', reference=options['reference'])
-sam = run('bwa_mem', reference=reference, fastq=[trimmed.output_r1, trimmed.output_r2])
+sam = run('bwa_mem', reference=reference, fastq=['output_r1.cutadapt', 'output_r2.cutadapt'])
 bam = run('sam_to_bam', input=sam, output=options['output'])
-index_ref >> sam
+
+index_ref >> (sam | bam)
 #%end
