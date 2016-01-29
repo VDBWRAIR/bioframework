@@ -9,7 +9,8 @@ using conda.
 
 For now do it manually
 ```
-conda install bwa samtools cutadapt
+conda install bwa samtools cutadapt pyzmq
+pip install pyjip
 ```
 
 # Execute pipeline
