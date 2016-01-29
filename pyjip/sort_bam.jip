@@ -1,0 +1,12 @@
+#!/usr/bin/env jip
+#
+# Sort a bam file
+#
+# Usage:
+#   sort_bam [-i <input>] [-o <output>]
+#
+# Options:
+#   -i, --input <input>    Input BAM [Default: stdin]
+#   -o, --output <output>  Output for sorted bam [Default: stdout]
+
+samtools sort ${input|else('-')} ${output|arg}

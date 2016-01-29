@@ -23,7 +23,10 @@ else:
 trimmed = run('cutadapt', input=fastq, qualcutoff=options['qualcutoff'], interleave=options['interleave'])
 index_ref = run('bwa_index', reference=options['reference'])
 sam = run('bwa_mem', reference=reference, fastq=trimmed)
-bam = run('sam_to_bam', input=sam, output=options['output'])
+ubam = run('sam_to_bam', input=sam)
+bam = run('sort_bam', input=ubam, output=options['output'])
+run('plot_bam', input=bam, output=options['output']+'.svg', format='svg')
 
-index_ref >> (sam | bam)
+index_ref >> sam
+
 #%end
