@@ -2,40 +2,39 @@
 # Runs cutadapt with only quality filter
 #
 # usage:
-#   cutadapt -q <qualcutoff>... -f <fastq>... [-o <outr1>] [-p <outr2>] [--pipe]
+#   cutadapt -q <qualcutoff>... [-i <input>] [-o <output>] [-p <outr2>] [--interleave]
 #
 # Options:
-#   -f, --fastq <fastq>            The input fastq file[s]
+#   -i, --input <input>            The input fastq [Default: stdin]
 #   -q, --qualcutoff <qualcutoff>  The quality cutoff [Default: 25]
-#   -o, --outr1 <outr1>            R1 output fastq [Default: output_r1.cutadapt]
-#   -p, --outr2 <outr2>            R2 output fastq
-#   --pipe                         Flag to create named pipes for output [Default: False]
+#   -o, --output <output>          Output fastq for single read or interleaved(paired)[Default: stdout]
+#   -p, --outr2 <outr2>            Reverse output for paired fastq(non-interleaved)
+#   --interleave                   Interleave output [Default: False]
 
 #%begin init
-add_output('output', [options['outr1']], nargs='+')
-#%end
-
-#%begin setup
-if len(options['fastq']) == 2:
-    options['qualcutoff'].join = ','
-    if len(options['qualcutoff']) != len(options['fastq']):
-        qualcutoff = options['qualcutoff'].value[0]
-        options['qualcutoff'].set([qualcutoff,qualcutoff])
-    if not options['outr2']:
-        options['outr2'].set('output_r2.cutadapt')
-    options['output'].append(options['outr2'])
 #%end
 
 #%begin validate
-assert len(options['fastq']) == len(options['qualcutoff']), validation_error('qualcuttoff must have same number of entries as fastq')
+#if options['interleave'] and len(options['fastq']) > 1:
+#    validation_error("Cannot specify more than 1 fastq file with --interleave")
+
+if options['interleave'] and len(options['outr2']) > 1:
+    validation_error("Cannot specify outr2 and --interleave")
+
+#if len(options['fastq']) != len(options['qualcutoff']):
+#    validation_error("qualcutoff must match number of fastq given")
 #%end
 
-if [ "${pipe|arg}" == "--pipe" ]
-then
-    mkfifo ${outr1} ${outr2|else('')}
-fi
-cutadapt ${outr1|arg} ${outr2|arg|else('')} -q ${qualcutoff} ${fastq}
-if [ "${pipe|arg}" == "--pipe" ]
-then
-    rm ${outr1} ${outr2|else('')}
-fi
+#%begin setup
+'''
+if len(options['fastq']) == 2:
+    options['qualcutoff'].join = ','
+
+    if not options['interleave']:
+        if not options['outr2']:
+            options['outr2'].set('output_r2.cutadapt')
+        options['output'].append(options['outr2'])
+'''
+#%end
+
+cutadapt ${interleave|arg|else('')} ${output|arg(">")} ${outr2|arg|else('')} -q ${qualcutoff} -f fastq ${input|else("/dev/stdin")}

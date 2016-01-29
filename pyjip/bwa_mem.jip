@@ -2,11 +2,16 @@
 # bwa mem
 #
 # Usage:
-#   bwa_mem -r <reference> -f <fastq>... [-o <output>]
+#   bwa_mem -r <reference> -f <fastq>... [-p] [-o <output>]
 #
 # Options:
 #   -r, --reference <reference>  Fasta reference path
-#   -o, --output <output>        Output path [Default: stdout]
-#   -f, --fastq <fastq>...       Fastq files to map to reference
+#   -o, --output <output>        Output path [default: stdout]
+#   -f, --fastq <fastq>...       Fastq files to map to reference [default: stdin]
+#   -p, --interleaved            Flag to specify interleaved input [default: False]
 
-bwa mem ${reference} ${fastq}
+#%begin init
+options['fastq'].streamable = True
+#%end
+
+bwa mem ${interleaved|arg|else('')} ${reference} ${fastq|else("/dev/stdin")} ${output|arg(">")}

@@ -3,7 +3,7 @@
 # Simple pipeline to run cutadapt, bwa index, bwa mem, samtools view
 #
 # Usage:
-#   simplepipe -r <reference> -f <fastq>... [-q <qualcutoff>...] [-o <output>] [--pipe]
+#   simplepipe -r <reference> -f <fastq>... [-q <qualcutoff>...] [-o <output>] [--interleave]
 #
 # Options:
 #   -r, --reference <reference>       Reference file to index and map to
@@ -12,13 +12,17 @@
 #                                     [Default: 25]
 #   -o, --output <output>             The output bam file
 #                                     [Default: mapped.bam]
-#   -p, --pipe                        To use named pipe(have to submit jip job for this to work)
+#   -i, --interleave                  To use interleave format as much as possible for stream
 #                                     [Default: False]
 
 #%begin pipeline
-trimmed = run('cutadapt', fastq=options['fastq'], qualcutoff=options['qualcutoff'], pipe=options['pipe'])
+if options['interleave']:
+    fastq = run('paired_to_interleave', forward=options['fastq'].value[0], reverse=options['fastq'].value[1])
+else:
+    fastq = options['fastq']
+trimmed = run('cutadapt', input=fastq, qualcutoff=options['qualcutoff'], interleave=options['interleave'])
 index_ref = run('bwa_index', reference=options['reference'])
-sam = run('bwa_mem', reference=reference, fastq=['output_r1.cutadapt', 'output_r2.cutadapt'])
+sam = run('bwa_mem', reference=reference, fastq=trimmed)
 bam = run('sam_to_bam', input=sam, output=options['output'])
 
 index_ref >> (sam | bam)
