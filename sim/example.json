@@ -1,0 +1,9 @@
+{
+    "numReads" : 20,
+    "position" : 500,
+    "basePercentages" : [100, 0, 0, 0, 0],
+    "qualityAverage" : 35,
+    "qualVariance"  : 0,
+    "pacbioPercentage" : 0,
+    "illuminaPercentage" : 100
+}
