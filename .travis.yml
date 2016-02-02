@@ -3,7 +3,6 @@ python:
   # We don't actually use the Travis Python, but this keeps it organized.
   - "2.6"
   - "2.7"
-  - "3.3"
   - "3.4"
 install:
   - sudo apt-get update
@@ -21,12 +20,14 @@ install:
   - conda update -q conda
   # Useful for debugging any issues with conda
   - conda info -a
-
-  # Replace dep1 dep2 ... with your dependencies
-  - conda install --file requirements.txt
-  - conda install --file tests/requirements-dev.txt
-  - if [[ $TRAVIS_PYTHON_VERSION == '2.6' ]]; then conda install unittest2; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == '3.4' ]]; then conda install robotframework-python3; else conda install robotframework; fi
+  # Add bioconda channels(r is required for bioconda)
+  - conda config --add channels r
+  - conda config --add channels bioconda
+  - conda install --file requirements-conda.txt
+  - pip install --file requirements.txt
+  - pip install --file tests/requirements-dev.txt
+  - if [[ $TRAVIS_PYTHON_VERSION == '2.6' ]]; then pip install unittest2; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == '3.4' ]]; then pip install robotframework-python3; else pip install robotframework; fi
   - python setup.py install
 script:
   - nosetests --with-coverage --cover-erase --cover-package=bioframework 
