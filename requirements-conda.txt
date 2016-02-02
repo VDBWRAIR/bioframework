@@ -2,3 +2,4 @@
 bwa
 samtools
 cutadapt
+biopython
