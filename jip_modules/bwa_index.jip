@@ -1,0 +1,20 @@
+#!/usr/bin/env jip
+# bwa index
+#
+# Usage:
+#   bwa_index -r <reference> [-o <output>]
+#
+# Options:
+#   -r, --reference <reference>   The fasta file to index
+#   -o, --output <output>         Where to create the index
+#                                 [Default: Same path as reference argument]
+
+#%begin init
+options['output'].default = "${reference}.bwt"
+#%end
+
+#%begin validate
+#%end
+
+cp ${reference|abs} ${output|ext}
+bwa index ${output|ext}

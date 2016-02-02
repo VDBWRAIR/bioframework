@@ -1,0 +1,14 @@
+#!/usr/bin/env jip
+#
+# Use gnuplot to plot simple depth histogram
+#
+# Usage:
+#   plot_bam [-i <input>] [-o <output>] [-f <format>]
+#
+# Options:
+#   -i, --input <input>    BAM file input
+#   -o, --output <output>  Output location
+#   -f, --format <format>  Ouput format [default: dumb]
+
+samtools depth -d 100000 -a ${input|else("/dev/stdin")} | \
+gnuplot -e "set term ${format}; set style data histogram; p '-' using 2:3 with lines;" ${output|arg(">")}
