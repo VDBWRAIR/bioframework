@@ -30,7 +30,7 @@ if not options.output.get() and not options.out_format:
 import sys
 
 from Bio import SeqIO
-from pyjip import util
+from bioframework import util
 
 if '${in_format}':
     informat = "${in_format}"
