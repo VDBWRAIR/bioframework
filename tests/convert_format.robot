@@ -6,11 +6,11 @@ Library             String
 Suite Teardown      Terminate All Processes    
 
 *** Variables ***
-${jip_dir} =                 ${CURDIR}/../pyjip
+${jip_path} =                ${CURDIR}/../jip_modules
 ${in_fastq} =                ${CURDIR}/testinput/test.fastq
 ${testout} =                 ${CURDIR}/testoutput/output
 ${fastaout} =                >id1\nATGC
-${tool} =                    ${jip_dir}/convert_format.jip
+${tool} =                    convert_format.jip
 
 *** Test Cases *** 
 convert_format file to stdout
