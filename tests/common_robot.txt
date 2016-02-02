@@ -31,3 +31,27 @@ Directory Should Have Items
     [Arguments]    ${path}    @{expected}
     ${items} =    List Directory    ${path}
     Lists Should Be Equal    ${items}    ${expected}
+
+Run Shell   [Arguments]     ${cmd}
+        ${result} =    Run Process     ${cmd}  shell=True
+        Log To Console  ${result.stderr}
+        Should Be Equal As Integers     ${result.rc}            0 
+        [Return]        ${result}
+
+Files Should Be Equal   [Arguments]     ${expected}   ${actual}
+        ${s1} =         Get File        ${expected}
+        ${s2} =         Get File        ${actual}
+        ${s1} =         Strip String    ${s1}
+        ${s2} =         Strip String    ${s2}
+        Should be Equal As Strings      ${s1}   ${s2}
+
+Command Should Fail     [Arguments]     ${cmd}
+        ${result} =    Run Process     ${cmd}  shell=True
+        Log To Console  ${result.stderr}
+        Should Be Equal As Integers     ${result.rc}            1 
+        [Return]        ${result}
+
+Should Be Substring     [Arguments]     ${super}        ${sub} 
+        ${lines} =      Get Regexp Matches      ${super}        ${sub}
+        Should Be Equal As Strings      lines}[0]       ${sub}
+
