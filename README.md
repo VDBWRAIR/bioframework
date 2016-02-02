@@ -1,5 +1,7 @@
 # BioFramework
 
+[![Build Status](https://travis-ci.org/VDBWRAIR/bioframework.svg?branch=master)](https://travis-ci.org/VDBWRAIR/bioframework)
+
 # Setup/Install
 
 1. Install miniconda
