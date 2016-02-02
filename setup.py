@@ -1,6 +1,13 @@
+from glob import glob
+from os.path import join
+import sys
+
 from setuptools import setup, find_packages
 
 import bioframework
+
+def jip_modules(path=bioframework.JIP_PATH):
+    return glob(join(path, '*.jip'))
 
 setup(
     name = bioframework.__projectname__,
@@ -15,5 +22,8 @@ setup(
     },
     install_requires = [
         'pyjip',
+    ],
+    data_files=[
+        (join(sys.prefix,'bin'), jip_modules()),
     ]
 )
