@@ -1,0 +1,4 @@
+# Dependencies that are software and/or large such as scikit-learn...
+bwa
+samtools
+cutadapt
