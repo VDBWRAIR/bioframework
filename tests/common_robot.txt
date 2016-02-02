@@ -1,0 +1,33 @@
+*** Settings ***
+Library           OperatingSystem
+Library           Collections
+
+*** Variables ***
+${TESTOUTPUTDIR}           ${CURDIR}/testoutput
+${TESTINPUTDIR}            ${CURDIR}/testinput
+${PROJDIR}                 ${CURDIR}/../
+
+*** Keywords ***
+Verify File
+    [Arguments]    ${path}    ${expected}    ${encoding}=UTF-8
+    ${content} =    Log File    ${path}    ${encoding}
+    Should Be Equal    ${content}    ${expected}
+
+Common Teardown
+    Remove Base Test Directory
+    Terminate All Processes
+
+Common Setup
+    Create Base Test Directory
+
+Create Base Test Directory
+    Remove Base Test Directory
+    Create Directory    ${TESTOUTPUTDIR}
+
+Remove Base Test Directory
+    Remove Directory    ${TESTOUTPUTDIR}    recursive
+
+Directory Should Have Items
+    [Arguments]    ${path}    @{expected}
+    ${items} =    List Directory    ${path}
+    Lists Should Be Equal    ${items}    ${expected}

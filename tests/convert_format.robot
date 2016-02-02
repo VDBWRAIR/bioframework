@@ -3,12 +3,14 @@ Library             Process
 Library             OperatingSystem
 Library             Collections 
 Library             String
-Suite Teardown      Terminate All Processes    
+Suite Teardown      Common Teardown
+Test Setup          Common Setup
+Resource            common_robot.txt
 
 *** Variables ***
-${jip_path} =                ${CURDIR}/../jip_modules
-${in_fastq} =                ${CURDIR}/testinput/test.fastq
-${testout} =                 ${CURDIR}/testoutput/output
+${jip_path} =                ${PROJDIR}/jip_modules
+${in_fastq} =                ${TESTINPUTDIR}/test.fastq
+${testout} =                 ${TESTOUTPUTDIR}/output
 ${fastaout} =                >id1\nATGC
 ${tool} =                    convert_format.jip
 
@@ -21,7 +23,7 @@ convert_format file to stdout
     Should Be Equal As Strings      ${result.stdout}        ${fastaout}
 
 convert_format file to file
-    ${result} =    Run Process      rm ${testout}.fasta; ${tool} -i ${in_fastq} -o ${testout}.fasta    shell=True    stderr=STDOUT
+    ${result} =    Run Process      ${tool} -i ${in_fastq} -o ${testout}.fasta    shell=True    stderr=STDOUT
     Log To Console                  ${result.stdout}
     Should Be Equal As Integers     ${result.rc}            0 
     ${actual_contents} =            Get File                ${testout}.fasta
