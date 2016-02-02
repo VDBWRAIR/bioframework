@@ -13,4 +13,7 @@ setup(
     keywords = bioframework.__keywords__,
     entry_points = {
     },
+    install_requires = [
+        'pyjip',
+    ]
 )
