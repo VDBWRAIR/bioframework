@@ -1,0 +1,33 @@
+#!/usr/bin/env jip
+#
+# {{desc}}
+#
+# Usage:
+#   {{cmd}} ((-f <forward> -r <reverse>) | -u <unpaired)  [((--of <forwardoutput> --or <reverseoutput>) | -o <output>))]
+#
+# Options:
+{% for d in opts %} 
+#   -{{d['name'][0]}},--{{d['name']}}=<{{d['name']}}>   {{d['description']}}
+{% endfor %}
+#   -u, --unpaired=<unpaired>  The unpaired fastq input
+#   -f, --forward=<forward>   The forward fastq input
+#   -r, --reverse=<reverse>   The reverse fastq input
+#   -o, --output=<output>     The interleaved output [default: stdout]
+#   --of=<forwardoutput>      
+#   --or=<reverseoutput>  
+
+
+#%begin validate
+
+assert __unpaired ^ (__forward && __reverse), "Must choose either paired or unpaired"
+
+#%end
+
+#%begin commmand bash
+
+if [ ${unpaired} ]
+  then {{unpaired_cmd}} 
+else {{paired_cmd}} 
+fi
+
+#%end

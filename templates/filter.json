@@ -1,0 +1,9 @@
+{
+    "opts" : [ {
+        "name" : "max-n",
+        "description" : "number of n's to allow" }],
+    "paired_cmd" : "cutadapt ${forward} ${reverse} --max-n=${max_n} -o ${forwardoutput} -p {reverseoutput}",
+
+    "unpaired_cmd" : "cutadapt ${unpaired} --max-n=${max_n} -o ${output}"
+}
+
