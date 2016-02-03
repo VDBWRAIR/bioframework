@@ -3,7 +3,9 @@
 # {{desc}}
 #
 # Usage:
-#   {{cmd}} ([-f <forward> -r <reverse>] | [-u <unpaired>]) [-o <output>...]
+#   {{cmd}} ([-f <forward> -r <reverse>] | [-u <unpaired>]) [-o <output>...] {% for opt in opts if opt.required %} [--{{opt.long}} <{{opt.name}}>] {% endfor %} {% for opt in opts if not opt.required %} --{{opt.long}} <{{opt.name}}> {% endfor %}
+#
+#
 #
 # Options:
 {% for opt in opts -%} 

@@ -5,7 +5,8 @@
         "short": "n",
         "long":  "max-n",
         "name": "max_n",
-        "description": "Max number of n's to allow"
+        "description": "Max number of n's to allow",
+        "required" : true
     }],
     "paired_cmd": "cutadapt ${forward} ${reverse} ${max_n|arg} -o ${forwardoutput} -p {reverseoutput}",
     "unpaired_cmd": "cutadapt ${unpaired} ${max_n|arg} -o ${output}"
