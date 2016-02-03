@@ -4,7 +4,8 @@ import os
 from itertools import ifilter, imap, izip
 from toolz import compose
 from toolz.itertoolz import second, first
-
+from seqio import write_zip_results
+from functools import partial
 def filter_on_index(seqs, index_seqs, predicate):
     pred = compose(predicate, second)
     return imap(first, ifilter(pred, izip(seqs, index_seqs)))
@@ -16,10 +17,8 @@ def write_index_filter(input, output, predicate):
     index = get_index(input)
     if index is None:
         raise ValueError("Index %s for file %s not found" % (index, input))
-    seqs = SeqIO.parse(input, 'fastq')
-    index_seqs = SeqIO.parse(index, 'fastq')
-    filtered = filter_on_index(seqs, index_seqs, predicate)
-    SeqIO.write(filtered, output, 'fastq')
+    return write_zip_results(partial(filter_on_index, predicate=predicate),
+                      input, index, output, 'fastq')
 
 def filter_on_index_quality(input, output, minimum):
     """Removes reads from a paired read file if its associated

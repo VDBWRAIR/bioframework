@@ -8,9 +8,16 @@ def interleave(iter1, iter2):
         yield forward
         yield reverse
 
-def paired_to_interleave(forward, reverse, output, out_format):
-    f1, f2 = open(forward), open(reverse)
-    records = interleave(SeqIO.parse(f1, 'fastq'), SeqIO.parse(f2, 'fastq'))
+def write_zip_results(func, file1, file2, output, out_format):
+    f1, f2 = open(file1), open(file2)
+    records = func(SeqIO.parse(f1, 'fastq'), SeqIO.parse(f2, 'fastq'))
     outfile = open(output, 'w')
     count = SeqIO.write(records, outfile, out_format)
     outfile.close()
+
+def paired_to_interleave(forward, reverse, output, out_format):
+    return write_zip_results(interleave, forward, reverse, output, out_format)
+
+
+
+
