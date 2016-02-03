@@ -3,31 +3,32 @@
 # {{desc}}
 #
 # Usage:
-#   {{cmd}} ((-f <forward> -r <reverse>) | -u <unpaired)  [((--of <forwardoutput> --or <reverseoutput>) | -o <output>))]
+#   {{cmd}} (-f <forward> -r <reverse> | -u <unpaired>) [-o <output>...]
 #
 # Options:
-{% for d in opts %} 
-#   -{{d['name'][0]}},--{{d['name']}}=<{{d['name']}}>   {{d['description']}}
-{% endfor %}
+{% for opt in opts -%} 
+#   -{{opt.short}}, --{{opt.long}}=<{{opt.name}}>  {{opt.description}}
+{% endfor -%}
 #   -u, --unpaired=<unpaired>  The unpaired fastq input
-#   -f, --forward=<forward>   The forward fastq input
-#   -r, --reverse=<reverse>   The reverse fastq input
-#   -o, --output=<output>     The interleaved output [default: stdout]
-#   --of=<forwardoutput>      
-#   --or=<reverseoutput>  
+#   -f, --forward=<forward>    The forward fastq input
+#   -r, --reverse=<reverse>    The reverse fastq input
+#   -o, --output=<output>      Output files [default: stdout]
 
 
 #%begin validate
 
-assert __unpaired ^ (__forward && __reverse), "Must choose either paired or unpaired"
+if options.unpaired ^ (options.forward && options.reverse):
+    validation_error("Must choose either paired or unpaired")
 
 #%end
 
-#%begin commmand bash
+#%begin command bash
 
-if [ ${unpaired} ]
-  then {{unpaired_cmd}} 
-else {{paired_cmd}} 
+if [ "${unpaired}" ]
+then
+    {{unpaired_cmd}} 
+else
+    {{paired_cmd}} 
 fi
 
 #%end
