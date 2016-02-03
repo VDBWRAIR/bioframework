@@ -3,7 +3,7 @@
 # {{desc}}
 #
 # Usage:
-#   {{cmd}} (-f <forward> -r <reverse> | -u <unpaired>) [-o <output>...]
+#   {{cmd}} ([-f <forward> -r <reverse>] | [-u <unpaired>]) [-o <output>...]
 #
 # Options:
 {% for opt in opts -%} 
@@ -17,7 +17,7 @@
 
 #%begin validate
 
-if options.unpaired ^ (options.forward && options.reverse):
+if options.unpaired and (options.forward or options.reverse):
     validation_error("Must choose either paired or unpaired")
 
 #%end
