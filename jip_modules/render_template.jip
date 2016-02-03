@@ -1,0 +1,25 @@
+#!/usr/bin/env jip
+#
+# Make jip job file from template + json
+#
+# Usage:
+#  mkjip -t <template> -j <json> [-o <output>]
+#
+# Options:
+#  -t, --tmplate=<template>  Jinja2 template to use
+#  -j, --json=<json>         Json file to use to replace values in tmplate
+#  -o, --output=<output>     Output location for job file [Default: stdout]
+
+#%begin command python
+import json
+from jinja2 import Template
+
+tmpl = Template(open("${tmplate}").read())
+jsn = json.load(open("${json}"))
+rendered = tmpl.render(jsn)
+
+fh = open("${output|else('/dev/stdout')}", 'w')
+fh.write(rendered)
+fh.close()
+
+#%end
