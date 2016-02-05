@@ -18,7 +18,7 @@ def write_index_filter(input, output, predicate):
     if index is None:
         raise ValueError("Index %s for file %s not found" % (index, input))
     return write_zip_results(partial(filter_on_index, predicate=predicate),
-                      input, index, output, 'fastq')
+                      output, 'fastq', input, index)
 
 def filter_on_index_quality(input, output, minimum):
     """Removes reads from a paired read file if its associated
@@ -26,3 +26,4 @@ def filter_on_index_quality(input, output, minimum):
     below_qual = lambda x: min(x.quality) < minimum
     write_index_filter(input, output, below_qual)
     return 0
+
