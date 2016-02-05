@@ -53,5 +53,5 @@ Command Should Fail     [Arguments]     ${cmd}
 
 Should Be Substring     [Arguments]     ${super}        ${sub} 
         ${lines} =      Get Regexp Matches      ${super}        ${sub}
-        Should Be Equal As Strings      lines}[0]       ${sub}
+        Should Be Equal As Strings      @{lines}[0]       ${sub}
 
