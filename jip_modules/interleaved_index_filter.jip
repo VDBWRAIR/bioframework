@@ -1,0 +1,20 @@
+#
+# Usage:  
+#    index_filter_quality <input> [-o <output>] --minimum <minimum> --index1 <index1> --index2 <index2>
+#
+# Options:
+#  -o, --output=<output>     Output files [default: stdout]
+#  -q, --minimum=<minimum>  Minimum quality of the index file
+#  -i1, --index1=<index1>   Index file from MiSeq
+#  -i2, --index2=<index2>   Index file from MiSeq
+# 
+# Help:
+#  <input>   Interleaved fastq file
+
+#%begin command python
+
+from bioframework.index_filter import filter_on_index_quality_interleaved
+filter_on_index_quality_interleaved("${input}", "${index1}", "${index2}", "${output}", "${min_qual}") 
+
+#%end
+
