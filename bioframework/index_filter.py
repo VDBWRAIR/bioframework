@@ -1,4 +1,3 @@
-from Bio import SeqIO
 from toolz.itertoolz import second, first, partition
 import re
 import os
@@ -41,4 +40,4 @@ def filter_on_index_quality_interleaved(interleaved, index1, index2, output, min
         zipped = izip(interleaved, idx1, idx2)
         filtered = imap(first, ifilter(indexes_above_min, zipped))
         return izip(*filtered)
-    return write_zip_results(qual_filter, output, 'fastq')
+    return write_zip_results(qual_filter, output, 'fastq', interleaved, index1, index2)
