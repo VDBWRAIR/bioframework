@@ -10,8 +10,9 @@ ${PROJDIR}                 ${CURDIR}/../
 *** Keywords ***
 Verify File
     [Arguments]    ${path}    ${expected}    ${encoding}=UTF-8
-    ${content} =    Log File    ${path}    ${encoding}
-    Should Be Equal    ${content}    ${expected}
+    File Should Exist   ${path}
+    ${content} =        Log File    ${path}    ${encoding}
+    Should Be Equal     ${content}    ${expected}
 
 Common Teardown
     Terminate All Processes
