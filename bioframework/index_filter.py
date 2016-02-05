@@ -7,9 +7,9 @@ from toolz import compose
 from seqio import write_zip_results
 from functools import partial
 
-def filter_on_index(predicate, *seqs):
+def filter_on_index(predicate, seqs, index_seqs):
     pred = compose(predicate, second)
-    return imap(first, ifilter(pred, izip(*seqs)))
+    return imap(first, ifilter(pred, izip(seqs, index_seqs)))
 
 def write_index_filter(input, output, predicate):
     def get_index(path):
