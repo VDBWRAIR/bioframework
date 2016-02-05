@@ -1,0 +1,56 @@
+#!/usr/bin/env jip
+#
+# Transform reads based on criteria via trimming
+#
+# Usage:
+#   filter_reads [<input>] [-p] [-t] [-q <qualcut>...] [-x <delete>...] [-o <output>]
+#
+# Options:
+#   -p, --paired                Indicates that the input is paired-interleave format otherwise
+#                               the input is assumed to be unpaired fastq
+#                               [Default: stdin]
+#   -o, --output=<output>       Output fastq. If input was interleave, output will be as well
+#                               [default: stdout]
+#   -t, --trim-n                Trim N's from ends of reads
+#   -q, --qualcutoff=<qualcut>  Quality score to cut from beginning and end of reads
+#                               If one value is given trim from 3', else trim from both
+#                               where the first value trims the 5' and the second trims the 3'
+#                               Trim 3': -q 25
+#                               Trim 5',3': -q 25 20
+#   -x, --removebases=<delete>  Remove X bases from all reads
+#                               If the number is positive remove from the beginning of reads
+#                               If the number is negative remove from the end of reads
+#                               Ex. -x 10 would remove 10 bases from the front
+#                               Ex. -x -10 would remove 10 bases from the end
+#                               Ex. -x 10 -10 would remove 10 bases from front and end
+#%begin init
+#%end
+
+#%begin validate
+if options.trim_n:
+    # See https://github.com/marcelm/cutadapt/pull/175
+    validation_error("--trim-n is not supported at this time")
+#%end
+
+#%begin setup
+# -u option has to be specified more than once, unlike -q option where you 
+# join together the args
+options.removebases.short = '-u'
+options.removebases.join = ' -u '
+options.qualcutoff.join = ','
+#%end
+
+#%begin command bash
+
+cutargs="${trim_n|arg('--trim-n')} ${qualcutoff|arg} ${removebases|arg} ${interleave}"
+if [ "${paired}" ]
+then
+    cmd="cutadapt --interleave $cutargs ${removebases|arg|upper} ${output|arg} ${input|else('--format fastq /dev/stdin')}"
+else
+    cmd="cutadapt $cutargs ${output|arg} ${forward} ${input|else('--format fastq /dev/stdin')}"
+fi
+
+echo $cmd >&2
+$cmd
+
+#%end
