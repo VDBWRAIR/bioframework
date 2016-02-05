@@ -14,10 +14,10 @@ Verify File
     Should Be Equal    ${content}    ${expected}
 
 Common Teardown
-    Remove Base Test Directory
     Terminate All Processes
 
 Common Setup
+    Remove Base Test Directory
     Create Base Test Directory
 
 Create Base Test Directory
