@@ -16,12 +16,12 @@ ${in_fastq} =                ${TESTOUTPUTDIR}/trim_me.fastq
 ${testout} =                 ${TESTOUTPUTDIR}/output
 ${trimmed_fq} =              @trimid\nAAAAAAAAAA\n+\nIIIIIIIIII
 ${out_fastq} =               ${trimmed_fq}\n${trimmed_fq}\n
-${tool} =                    ${jip_path}/transform_reads.jip
+${tool} =                    ${jip_path}/trim_reads.jip
 ${jipdb} =                   ${TESTOUTPUTDIR}/jip.db
 
 *** Test Cases *** 
 # Normal execution
-transform_reads paired trims Ns
+trim_reads paired trims Ns
     Create File                     ${in_fastq}                 ${interleave_content}
     ${result} =    Run Process      ${tool} ${in_fastq} -p -o ${testout}.fastq -t     shell=True    stderr=STDOUT    env:JIP_DB=${jipdb}
     Log To Console                  ${result.stdout}
@@ -29,28 +29,28 @@ transform_reads paired trims Ns
     #Should Be Equal As Integers     ${result.rc}                0 
     #Verify File                     ${testout}.fastq            ${out_fastq}
 
-transform_reads paired trims low quality
+trim_reads paired trims low quality
     Create File                     ${in_fastq}                 ${interleave_content}
     ${result} =    Run Process      ${tool} ${in_fastq} -p -o ${testout}.fastq -q 25 30    shell=True    stderr=STDOUT    env:JIP_DB=${jipdb}
     Log To Console                  ${result.stdout}
     Should Be Equal As Integers     ${result.rc}                0 
     Verify File                     ${testout}.fastq            ${out_fastq}
 
-transform_reads paired removes bases
+trim_reads paired removes bases
     Create File                     ${in_fastq}                 ${interleave_content}
     ${result} =    Run Process      ${tool} ${in_fastq} -p -o ${testout}.fastq -x 10 -10    shell=True    stderr=STDOUT    env:JIP_DB=${jipdb}
     Log To Console                  ${result.stdout}
     Should Be Equal As Integers     ${result.rc}                0 
     Verify File                     ${testout}.fastq            ${out_fastq}
 
-transform_reads paired accepts interleave input
+trim_reads paired accepts interleave input
     Create File                     ${in_fastq}                 ${interleave_content}
     ${result} =    Run Process      ${tool} ${in_fastq} -p -o ${testout}.fastq -x 10 -10    shell=True    stderr=STDOUT    env:JIP_DB=${jipdb}
     Log To Console                  ${result.stdout}
     Should Be Equal As Integers     ${result.rc}                0 
     Verify File                     ${testout}.fastq            ${out_fastq}
 
-transform_reads handles stdin/stdout pipe
+trim_reads handles stdin/stdout pipe
     Create File                     ${in_fastq}                 ${interleave_content}
     ${result} =    Run Process      cat ${in_fastq} | ${tool} -x 10 -10 | cat > ${testout}.fastq  shell=True    stderr=STDOUT    env:JIP_DB=${jipdb}
     Log To Console                  ${result.stdout}

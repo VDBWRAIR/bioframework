@@ -1,6 +1,6 @@
 #!/usr/bin/env jip
 #
-# Transform reads based on criteria via trimming
+# Trim reads based on criteria via trimming
 #
 # Usage:
 #   filter_reads [<input>] [-p] [-t] [-q <qualcut>...] [-x <delete>...] [-o <output>]
