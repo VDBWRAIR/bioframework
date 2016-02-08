@@ -1,0 +1,14 @@
+{
+    "cmd": "filter_reads",
+    "desc": "Filter reads based on criteria",
+    "opts": [{
+        "short": "n",
+        "long":  "max-n",
+        "name": "max_n",
+        "description": "Max number of n's to allow",
+        "required" : true
+    }],
+    "paired_cmd": "cutadapt --interleaved ${input} ${max_n|arg} -o ${forwardoutput} -p {reverseoutput}",
+    "unpaired_cmd": "cutadapt ${input} ${max_n|arg} -o ${output}"
+}
+
