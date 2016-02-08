@@ -8,7 +8,7 @@
         "description": "Max number of n's to allow",
         "required" : true
     }],
-    "paired_cmd": "cutadapt --interleaved ${input} ${max_n|arg} -o ${forwardoutput} -p {reverseoutput}",
-    "unpaired_cmd": "cutadapt ${input} ${max_n|arg} -o ${output}"
+    "paired_cmd": "cutadapt --interleave ${max_n|arg} ${output|arg} -p {reverseoutput} ${input|else('--format fastq /dev/stdin')}",
+    "unpaired_cmd": "cutadapt ${input|else('--format fastq /dev/stdin')} ${max_n|arg} ${output|arg}"
 }
 
