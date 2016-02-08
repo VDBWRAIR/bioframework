@@ -22,18 +22,26 @@ ${filterIndex} =        interleaved_index_filter.jip
 *** Test Cases *** 
 # Normal execution
 40 Quality doesn't change file
-        Run JIP Tool And Return RC And Output       ${filterIndex} ${in_fastq} -o ${testout2}.fastq --minimum 0 --index1 ${index1} --index2 ${index2} -o ${testout2}
+        Run JIP Tool And Return RC And Output       ${filterIndex} ${in_fastq} -o ${testout2}.fastq --minimum 0 --index1 ${index1} --index2 ${index2} 
         Files Should Be Equal   ${testout2}.fastq       ${in_fastq}
 
 High maximum N's doesn't change file
     Run JIP Tool And Return RC And Output
-      ${dropNs} ${in_fastq} -p -o ${testout1}.fastq -t --max-n 999
+      ${dropNs} ${in_fastq} -p -o ${testout1}.fastq  --max-n 999
     Files Should Be Equal   ${testout1}.fastq       ${in_fastq}
 
 filter out Ns
-    Run JIP Tool And Return RC And Output      ${dropNs} ${in_fastq} -p -o ${testout1}.fastq -t --max-n 1
+    Run JIP Tool And Return RC And Output      ${dropNs} ${in_fastq} -p -o ${testout1}.fastq  --max-n 1
     Run JIP Tool And Return RC And Output       ${filterIndex} ${testout1}.fastq -o ${testout2}.fastq --minimum 32 --index1 ${index1} --index2 ${index2} -o ${testout2}
         Files Should Be Equal   ${testout2}     ${expected_fastq} 
+
+accepts stdin and stdout
+        ${cmd} =        ${filterIndex} --minimum 0 --index1 ${index1} --index2 ${index2} | ${dropNs} ${in_fastq} -p --max-n 1
+        ${input} =      Get File        ${in_fastq}
+        ${expected} =      Get File        ${expected_fastq}
+        Ensure Tool Accepts Stdin And Outputs Stdout    ${cmd}  ${input}        ${expected}
+
+
 # End Normal execution
 
 # Expected failures
