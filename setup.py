@@ -22,6 +22,7 @@ setup(
     },
     install_requires = [
         'pyjip',
+        'toolz',
     ],
     data_files=[
         (join(sys.prefix,'bin'), jip_modules()),
