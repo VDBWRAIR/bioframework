@@ -32,3 +32,26 @@ Directory Should Have Items
     [Arguments]    ${path}    @{expected}
     ${items} =    List Directory    ${path}
     Lists Should Be Equal    ${items}    ${expected}
+
+Run JIP Tool And Return RC And Output
+    [Arguments]       ${cmdline}    ${expected_rc}=0    ${jipdb}=${TESTOUTPUTDIR}/jip.db    ${log_to_console}=True
+    ${result} =       Run Process    ${cmdline}    shell=True    stderr=STDOUT    env:JIP_DB=${jipdb}
+    Run Keyword If    ${log_to_console}    Log To Console    ${result.stdout}
+    Should Be Equal As Integers     ${result.rc}                       ${expected_rc} 
+    [return]    ${result.rc}    ${result.stdout}
+
+Ensure Tool Accepts Stdin And Outputs Stdout
+    [Arguments]    ${tool_and_options}    ${input_contents}    ${expected_contents}
+    ${in_fastq} =                   Set Variable                ${TESTOUTPUTDIR}/input.fastq
+    ${out_fastq} =                  Set Variable                ${TESTOUTPUTDIR}/output.fastq
+    Create File                     ${in_fastq}                 ${input_contents}
+    ${rc}    ${stdout} =            Run Jip Tool And Return RC And Output    cat ${in_fastq} | ${tool_and_options} | cat > ${out_fastq}
+    Log To Console                  ${stdout}
+    Should Be Equal As Integers     ${rc}                0 
+    Verify File                     ${out_fastq}                ${expected_contents}
+
+Normalized Input And Output Usage Statement
+    [Arguments]    ${tool}
+    ${rc}    ${stdout} =            Run JIP Tool And Return RC And Output    ${tool} --help    expected_rc=1
+    Should Contain                  ${stdout}    [<input>] [-p]
+    Should Contain                  ${stdout}    [<input>]
