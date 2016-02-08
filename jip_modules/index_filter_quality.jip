@@ -1,3 +1,4 @@
+#!/usr/bin/env jip
 #
 # Usage:  
 #    index_filter_quality <input> [-o <output>] --minimum <minimum>
