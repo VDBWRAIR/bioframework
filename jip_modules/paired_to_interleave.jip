@@ -3,13 +3,26 @@
 # Converts 2 fastq paired files into single interleave
 #
 # Usage:
-#   paired_to_interleave -f <forward> -r <reverse> [--out-format <out-format>] [-o <output>]
+#   paired_to_interleave [<input>...] [--out-format <out-format>] [-o <output>]
 #
 # Options:
 #   -f, --forward=<forward>   The forward fastq input
 #   -r, --reverse=<reverse>   The reverse fastq input
 #   -o, --output=<output>     The interleaved output [default: stdout]
 #   --out-format=<outformat>  The output format [default: fastq]
+#
+# Help:
+#    <input>    Must be two input files where the first input file represents the
+#               forward reads and the second input file represents the reverse reads
+#               The read files must contain the same amount of reads and all read
+#               identifiers must be identical in the forward and reverse
+#               I.E.
+#               forward.fastq
+#                 >id1 whatever123
+#                 ATGC
+#               reverse.fastq
+#                 >id1 whatever321
+#                 CGTA
 
 #%begin validate
 if options['out_format'] not in ('fasta', 'fastq'):
@@ -17,13 +30,17 @@ if options['out_format'] not in ('fasta', 'fastq'):
         "output format can only be fasta or fastq. You provided '%s'" 
             % options['out_format']
     )
+if len(options.input.value) != 2:
+    validation_error(
+        "Must supply two input files to convert to interleave"
+    )
 #%end
 
 #%begin command python
 from bioframework import seqio
 seqio.paired_to_interleave(
-    "${forward}",
-    "${reverse}",
+    "${input.value|first}",
+    "${input.value|last}",
     "${output|else('/dev/stdout')}",
     "${out_format}"
 )

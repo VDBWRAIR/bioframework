@@ -48,6 +48,7 @@ trim_reads handles stdin/stdout pipe
 # Ensure normalized usage statements
 trim_reads supports input and output
     Normalized input And Output Usage Statement    ${tool}
+# End Normalized usage
 
 # Expected failures
 # End Expected failures

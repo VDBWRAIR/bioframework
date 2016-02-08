@@ -63,7 +63,7 @@ Ensure Tool Accepts Stdin And Outputs Stdout
     Verify File                     ${out_fastq}                ${expected_contents}
 
 Normalized Input And Output Usage Statement
-    [Arguments]    ${tool}
-    ${rc}    ${stdout} =            Run JIP Tool And Return RC And Output    ${tool} --help    expected_rc=1
-    Should Contain                  ${stdout}    [<input>] [-p]
-    Should Contain                  ${stdout}    [<input>]
+    [Arguments]    ${tool}    ${supports_paired}=True
+    ${rc}    ${stdout} =            Run JIP Tool And Return RC And Output    ${tool} --help    expected_rc=1    log_to_console=False
+    Should Match Regexp    ${stdout}    (\\[\<input\>(\.\.\.)*\\])|(\\[\<input\>\\] \\[-p\\])
+    Should Contain                  ${stdout}    [-o <output>]
