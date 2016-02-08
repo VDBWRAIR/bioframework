@@ -1,0 +1,27 @@
+#!/usr/bin/env jip
+#
+# Filter reads based on criteria
+#
+# Usage:
+#   filter_reads [<input>] [ -p ] [-o <output>...]  [--max-n <max_n>]  
+#
+#
+#
+# Options:
+#   -n, --max-n=<max_n>  Max number of n's to allow
+#   -p, --paired=<reverse>     Input is interleaved paired
+#   -o, --output=<output>      Output files [default: stdout]
+
+
+#%begin command bash
+
+if [ "${paired}" ]
+then
+    echo "cutadapt --interleave ${max_n|arg} ${output|arg} -p {reverseoutput} ${input|else('--format fastq /dev/stdin')}"
+    cutadapt --interleave ${max_n|arg} ${output|arg} -p {reverseoutput} ${input|else('--format fastq /dev/stdin')} 
+else
+    echo "cutadapt ${input|else('--format fastq /dev/stdin')} ${max_n|arg} ${output|arg}"
+    cutadapt ${input|else('--format fastq /dev/stdin')} ${max_n|arg} ${output|arg} 
+fi
+
+#%end
