@@ -13,6 +13,7 @@ def write_zip_results(func, output, out_format, *files):
     inputs = map(parse_fastq, files)
     results = func(*inputs)
     count = SeqIO.write(results, output, out_format)
+    return count
 
 def paired_to_interleave(forward, reverse, output, out_format):
     return write_zip_results(interleave, output, out_format, forward, reverse)
