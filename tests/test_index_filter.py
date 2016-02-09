@@ -24,7 +24,8 @@ good_index = lambda: common.seqrec_stream(range(1,num_indexes+1), range(1,num_in
 class RunsInFixtureDir(object):
     def setUp(self):
         # Start new tempdir
-        shutil.rmtree(testdirbasepath)
+        if exists(testdirbasepath):
+            shutil.rmtree(testdirbasepath)
         self.tdir = TempDirectory(path=testdirbasepath)
         p = os.makedirs(testdirbasepath)
 
