@@ -40,10 +40,10 @@ def filter_on_index_quality_interleaved(interleaved, index1, index2, output, min
         interleaved = partition(2, interleaved)
         # Zip together indexes with pairs 
         #  [((SeqRecord(forward), SeqRecord(reverse)), SeqRecord(forwardindex), SeqRecord(reverseindex)]
-        zipped = zip(interleaved, idx1, idx2)
+        zipped = izip(interleaved, idx1, idx2)
         # Filter out all indexes with less than min qual and then grab
         # only the interleaved sequence tuple
-        filtered = map(first, filter(indexes_above_min, zipped))
+        filtered = imap(first, ifilter(indexes_above_min, zipped))
         # Chain together all sequences
-        return list(chain(*filtered))
+        return chain.from_iterable(filtered)
     return write_zip_results(qual_filter, output, 'fastq', interleaved, index1, index2)
