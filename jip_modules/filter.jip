@@ -1,0 +1,30 @@
+#!/usr/bin/env jip
+#
+# 
+#
+# Usage:
+#    ((-f <forward> -r <reverse>) | -u <unpaired)  [((--of <forwardoutput> --or <reverseoutput>) | -o <output>))]
+#
+# Options:
+ 
+#   -n,--name=<name>   description
+
+#   -u, --unpaired=<unpaired>  The unpaired fastq input
+#   -f, --forward=<forward>   The forward fastq input
+#   -r, --reverse=<reverse>   The reverse fastq input
+#   -o, --output=<output>     The interleaved output [default: stdout]
+#   --of=<forwardoutput>      
+#   --or=<reverseoutput>  
+
+
+#%begin validate
+
+assert __unpaired ^ (__forward && __reverse), "Must choose either paired or unpaired"
+
+#%end
+
+#%begin commmand bash
+
+${ if options.unpaired } cutadapt ${unpaired} --max-n=${max_n} -o ${output} ${ else } cutadapt ${forward} ${reverse} --max-n=${max_n} -o ${forwardoutput} -p {reverseoutput} { endif }
+
+#%end

@@ -1,10 +1,14 @@
-from toolz.itertoolz import second, first, partition
+from toolz.itertoolz import second, first, partition, pluck
 import re
 import os
-from itertools import ifilter, imap, izip
+from itertools import ifilter, imap, izip, tee, starmap
 from toolz import compose
-from seqio import write_zip_results
+from seqio import write_zip_results, interleave
 from functools import partial
+
+def unzip(l):
+    iters = tee(l) # TODO: This should be replaced by a lazy version # which can yield as many iterators as are needed.
+    return starmap(pluck, enumerate(iters))
 
 def filter_on_index(predicate, seqs, index_seqs):
     pred = compose(predicate, second)
@@ -31,13 +35,13 @@ def filter_on_index_quality(input, output, minimum):
 def filter_on_index_quality_interleaved(interleaved, index1, index2, output, minimum):
     '''enpair the interleaved read file,zip that enpaired with the two indexes
     drop pairs from the interleaved file if either *index* is below the minimum'''
-    above_min = lambda x: min(x.quality) >= minimum
-    def indexes_above_min(seqs, idx1,idx2):
+    above_min = lambda x: min(x._per_letter_annotations['phred_quality']) >= minimum
+    def indexes_above_min((seqs, idx1,idx2)):
         return above_min(idx1) and above_min(idx2)
     def qual_filter(interleaved, idx1, idx2):
         pairs = partial(partition, 2)
         interleaved = pairs(interleaved)
         zipped = izip(interleaved, idx1, idx2)
         filtered = imap(first, ifilter(indexes_above_min, zipped))
-        return izip(*filtered)
+        return interleave(*unzip(filtered))
     return write_zip_results(qual_filter, output, 'fastq', interleaved, index1, index2)
