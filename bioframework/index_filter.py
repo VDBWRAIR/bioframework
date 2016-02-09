@@ -30,20 +30,21 @@ def filter_on_index_quality(input, output, minimum):
 def filter_on_index_quality_interleaved(interleaved, index1, index2, output, minimum):
     '''enpair the interleaved read file,zip that enpaired with the two indexes
     drop pairs from the interleaved file if either *index* is below the minimum'''
+    return write_zip_results(partial(qual_filter, minimum), output, 'fastq', interleaved, index1, index2)
+
+def qual_filter(minimum, interleaved, idx1, idx2):
     above_min = lambda x: min(x.letter_annotations['phred_quality']) >= minimum
     def indexes_above_min(seq_index):
         seq, idx1, idx2 = seq_index
         return above_min(idx1) and above_min(idx2)
-    def qual_filter(interleaved, idx1, idx2):
-        # pair together forward/reverse reads
-        #  [SeqRecord(forward), SeqRecord(reverse)]
-        interleaved = partition(2, interleaved)
-        # Zip together indexes with pairs 
-        #  [((SeqRecord(forward), SeqRecord(reverse)), SeqRecord(forwardindex), SeqRecord(reverseindex)]
-        zipped = izip(interleaved, idx1, idx2)
-        # Filter out all indexes with less than min qual and then grab
-        # only the interleaved sequence tuple
-        filtered = imap(first, ifilter(indexes_above_min, zipped))
-        # Chain together all sequences
-        return chain.from_iterable(filtered)
-    return write_zip_results(qual_filter, output, 'fastq', interleaved, index1, index2)
+    # pair together forward/reverse reads
+    #  [SeqRecord(forward), SeqRecord(reverse)]
+    interleaved = partition(2, interleaved)
+    # Zip together indexes with pairs 
+    #  [((SeqRecord(forward), SeqRecord(reverse)), SeqRecord(forwardindex), SeqRecord(reverseindex)]
+    zipped = izip(interleaved, idx1, idx2)
+    # Filter out all indexes with less than min qual and then grab
+    # only the interleaved sequence tuple
+    filtered = imap(first, ifilter(indexes_above_min, zipped))
+    # Chain together all sequences
+    return chain.from_iterable(filtered)
