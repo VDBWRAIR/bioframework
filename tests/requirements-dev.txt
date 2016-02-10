@@ -2,3 +2,5 @@ nose
 mock
 python-coveralls 
 testfixtures
+sh
+hypothesis
