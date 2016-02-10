@@ -86,7 +86,7 @@ class TestIndexQualityFilter(unittest.TestCase):
         outfile = 'foo'
         map(partial(SeqIO.write, format='fastq'), seqs[1:], names)
         cmd = sh.Command('jip_modules/interleaved_index_filter.jip')
-        cmd(i=names[0], index1=names[1], index2=names[2], minimum=seqs[1], o=outfile) # could use stdout
+        cmd(names[0], index1=names[1], index2=names[2], minimum=seqs[1], o=outfile) # could use stdout
         result = SeqIO.parse(outfile, 'fastq')
         return result
 #
