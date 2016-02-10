@@ -42,9 +42,9 @@ reads_and_indices = st.integers(min_value=1,max_value=5).flatmap(
 def ilen(seq): return sum(1 for _ in seq)
 
 class TestIndexQualityFilter(unittest.TestCase):
-    @given(reads_and_indices)
-    def test_idempotent(self, seqs):
-        self.assertSequenceEqual(list(qual_filter(*seqs)), list(qual_filter(list(qual_filter(*seqs)), *seqs[1:])))
+#    @given(reads_and_indices)
+#    def test_idempotent(self, seqs):
+#        self.assertSequenceEqual(list(qual_filter(*seqs)), list(qual_filter(list(qual_filter(*seqs)), *seqs[1:])))
 
     @given(reads_and_indices)
     def test_always_less_or_equal_size(self, seqs):
