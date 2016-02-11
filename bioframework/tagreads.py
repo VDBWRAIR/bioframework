@@ -6,8 +6,8 @@ import os.path
 #from ngs_mapper.bam import sortbam, indexbam
 #import shutil
 
-import log
-logger = log.setup_logger('tagreads',log.get_config())
+#import log
+#logger = log.setup_logger('tagreads',log.get_config())
 
 # Exception for when headers exist
 class HeaderExists(Exception): pass
@@ -36,12 +36,12 @@ RG_TEMPLATE = {
 def main():
     args = parse_args()
     for bam in args.bamfiles:
-        tag_bam( bam, args.SM, args.CN )
+        tag_bam( bam, args.SM, args.CN, args.output )
 
-def tag_bam( bam, SM, CN ):
-    logger.info( "Gathering existing header for {0}".format(bam) )
+def tag_bam( bam, SM, CN, output ):
+    #logger.info( "Gathering existing header for {0}".format(bam) )
     hdr = get_rg_headers( bam, SM, CN )
-    tag_reads( bam, hdr )
+    tag_reads( bam, hdr, output )
 
 def tag_read( untagged_read, tags ):
     '''
@@ -55,7 +55,7 @@ def tag_read( untagged_read, tags ):
     '''
     #if untagged_read.FLAG >= 2048:
     #    # Skip supplementary
-    #    logger.debug( "Skipping read {0} because it is supplementary".format(untagged_read.QNAME) )
+    #    #logger.debug( "Skipping read {0} because it is supplementary".format(untagged_read.QNAME) )
     #    return untagged_read
     # Append the new tags
     if untagged_read._tags and untagged_read._tags[-1] != '\t':
@@ -79,10 +79,10 @@ def tag_readgroup( read ):
         @returns SamRow that is tagged with the appropriate read group
     '''
     rg = get_rg_for_read( read )
-    #logger.debug( "Tagging {0} with Read group {0}".format(read.qname,rg) )
+    ##logger.debug( "Tagging {0} with Read group {0}".format(read.qname,rg) )
     return tag_read( read, ['RG:Z:'+rg] )
 
-def tag_reads( bam, hdr ):
+def tag_reads( bam, hdr, output ):
     '''
         Sets header of bam and tags all reads appropriately for each platform
         Overwrites existing header
@@ -93,20 +93,21 @@ def tag_reads( bam, hdr ):
     # Open the existing bam to fetch the reads to modify from
     untagged_bam = samtools.view( bam )
     # Open a file to write the sam output to with the tagged reads
-    samf = bam.replace('.bam','.sam')
-    with open( samf, 'w' ) as sam:
+    if output: sam = open(output, 'w')
+    else: sam = sys.stdout
         # Write the hdr to the file first
-        sam.write( hdr )
-        # Tag the reads
-        logger.info( "Tagging reads for {0}".format(bam) )
-        for read in untagged_bam:
-            samrow = samtools.SamRow(read)
-            read = tag_readgroup( samrow )
-            sam.write( str(read) + '\n' )
+    sam.write( hdr )
+    # Tag the reads
+    #logger.info( "Tagging reads for {0}".format(bam) )
+    for read in untagged_bam:
+        samrow = samtools.SamRow(read)
+        read = tag_readgroup( samrow )
+        sam.write( str(read) + '\n' )
     # Close stdout
     untagged_bam.close()
-    logger.info( "Finished tagging reads for {0}".format(bam) )
-    logger.info( "Sorting {0}".format(bam) )
+    sam.close()
+    #logger.info( "Finished tagging reads for {0}".format(bam) )
+    #logger.info( "Sorting {0}".format(bam) )
 #    b = samtools.view( samf, h=True, S=True, b=True )
 #    sortbam( b, bam )
 #    # Close the fh
@@ -114,7 +115,7 @@ def tag_reads( bam, hdr ):
 #    # Remove temp sam file
 #    # maybe some day could even just use pipes all the way through :)
 #    os.unlink( samf )
-#    logger.info( "Indexing {0}".format(bam) )
+#    #logger.info( "Indexing {0}".format(bam) )
 #    indexbam( bam )
 
 def get_rg_for_read( aread ):
@@ -189,3 +190,5 @@ def parse_args( args=sys.argv[1:] ):
         dest='output'
     )
     return parser.parse_args( args )
+
+if __name__ == '__main__': main()
