@@ -30,6 +30,7 @@ def filter_on_index_quality(input, output, minimum):
 def filter_on_index_quality_interleaved(interleaved, index1, index2, output, minimum):
     '''enpair the interleaved read file,zip that enpaired with the two indexes
     drop pairs from the interleaved file if either *index* is below the minimum'''
+    minimum = int(minimum)
     return write_zip_results(partial(qual_filter, minimum), output, 'fastq', interleaved, index1, index2)
 
 def qual_filter(minimum, interleaved, idx1, idx2):
@@ -40,7 +41,7 @@ def qual_filter(minimum, interleaved, idx1, idx2):
     # pair together forward/reverse reads
     #  [SeqRecord(forward), SeqRecord(reverse)]
     interleaved = partition(2, interleaved)
-    # Zip together indexes with pairs 
+    # Zip together indexes with pairs
     #  [((SeqRecord(forward), SeqRecord(reverse)), SeqRecord(forwardindex), SeqRecord(reverseindex)]
     zipped = izip(interleaved, idx1, idx2)
     # Filter out all indexes with less than min qual and then grab
