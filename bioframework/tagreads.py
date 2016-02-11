@@ -5,7 +5,8 @@ import re
 import os.path
 #from ngs_mapper.bam import sortbam, indexbam
 #import shutil
-
+from signal import signal, SIGPIPE, SIG_DFL
+signal(SIGPIPE,SIG_DFL) #http://stackoverflow.com/questions/14207708/ioerror-errno-32-broken-pipe-python
 #import log
 #logger = log.setup_logger('tagreads',log.get_config())
 
