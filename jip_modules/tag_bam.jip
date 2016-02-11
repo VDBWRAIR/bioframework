@@ -1,0 +1,9 @@
+#!/usr/bin/env jip
+# Usage: 
+# tagreads [<input>] [-h] [--config CONFIG] [--version] [-SM <SM>] [-CN <CN>] [-o <output>]
+# Options:
+#   -SM <SM>  A tag
+#   -CN <CN>  Another tag
+#   -o, --output=<output>       Output fastq. If input was interleave, output will be as well
+
+tagreads ${input|else('/dev/stdin')} ${SM|arg} ${CN|arg} ${output|else('/dev/stdout')}

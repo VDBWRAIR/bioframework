@@ -183,4 +183,9 @@ def parse_args( args=sys.argv[1:] ):
         help=defaults['CN']['help']
     )
 
+    parser.add_argument(
+        '--output',
+        '-o',
+        dest='output'
+    )
     return parser.parse_args( args )
