@@ -36,7 +36,7 @@ rec = st.integers(min_value=1, max_value=10).flatmap(
 reads_and_indices = st.integers(min_value=1,max_value=10).flatmap(
    lambda n:
    st.tuples(
-      st.integers(min_value=0, max_value=1),
+      st.integers(min_value=0, max_value=40),
       st.lists(rec, min_size=n, max_size=n).map(lambda x: list(interleave(x, x))),
       st.lists(rec, min_size=n, max_size=n),
       st.lists(rec, min_size=n, max_size=n),
@@ -53,14 +53,12 @@ def make_io_matrix(seqs):
     def output_stdout(cmd):
         sio = StringIO()
         cmd(_out=sio)
+        sio.seek(0)
         return sio
-#         cmd()
-#         return '/dev/stdout'
     def output_file(cmd):
         fn = 'genoutput.fastq'
         cmd(o=fn)
-        return fn
-    #import ipdb; ipdb.set_trace()
+        return open(fn)
     inputs = st.one_of(*map(st.just, [input_file, lambda cmd:
       cmd.bake(_in='\n'.join((read.format('fastq')) for read in reads))]))
     outputs = st.one_of(*map(st.just, [output_stdout, output_file]))
@@ -74,99 +72,104 @@ def ilen(seq): return sum(1 for _ in seq)
 
 class TestIndexQualityFilter(unittest.TestCase):
 
-#    @given(reads_and_indices)
-#    def test_always_less_or_equal_size(self, seqs):
-#        self.assertLessEqual(ilen(qual_filter(*seqs)), ilen(seqs[1]))
-#
-#    @given(reads_and_indices)
-#    def test_result_is_even(self, seqs):
-#        self.assertTrue(ilen(qual_filter(*seqs)) % 2 == 0)
-#
-#    @given(reads_and_indices)
-#    def test_result_is_interleaved(self, seqs):
-#        result = qual_filter(*seqs)
-#        pairs = partition(2, result)
-#        matches = map(lambda (x,y): x.id == y.id, pairs)
-#        self.assertTrue(all(matches))
-#
-#    @given(reads_and_indices)
-#    def test_drops_all_if_all_lower(self, seqs):
-#        (_min, reads, i1, i2) = seqs
-#        assume(not any(map(above_min(_min), i1)))
-#        result = qual_filter(*seqs)
-#        self.assertEqual([], list(result))
-#
-#    @given(reads_and_indices)
-#    def test_drops_none_if_all_above(self, seqs):
-#        (_min, reads, i1, i2) = seqs
-#        assume(all(map(above_min(_min), i1)))
-#        assume(all(map(above_min(_min), i2)))
-#        result = qual_filter(*seqs)
-#        self.assertEqual(reads, list(result))
-#
-#    @given(reads_and_indices)
-#    def test_drops_some_if_any_lower(self, seqs):
-#        (_min, reads, i1, i2) = seqs
-#        assume(not all(map(above_min(_min), i1 + i2)))
-#        result = qual_filter(*seqs)
-#        self.assertLess(ilen(result), ilen(reads))
-#
-    def run_io(self, seqs):
-        names =  ['r', 'i1', 'i2']
-        outfile = 'foo'
-        map(partial(SeqIO.write, format='fastq'), seqs[1:], names)
-        cmd = sh.Command('jip_modules/interleaved_index_filter.jip')
-        cmd(names[0], index1=names[1], index2=names[2], minimum=seqs[0], o=outfile) # could use stdout
-        result = SeqIO.parse(outfile, 'fastq')
-        return result
-#
-#
-#    @given(reads_and_indices)
-#    @hypothesis.settings(max_examples=20)
-#    def test_drops_some_if_any_lower_with_IO(self, seqs):
-#        (_min, reads, i1, i2) = seqs
-#        assume(not all(map(above_min(_min), i1 + i2)))
-#        result = self.run_io(seqs)
-#        self.assertLess(ilen(result), ilen(reads))
-#
-#    @given(reads_and_indices)
-#    def test_drops_correct_seq(self, seqs):
-#        (_min, reads, i1, i2) = seqs
-#        assume(not all(map(above_min(_min), i1)))
-#        first_failing_index = ilen(takewhile(above_min(_min), i1))
-#        failing_reads = reads[first_failing_index*2:first_failing_index*2+2]
-#        result = list(qual_filter(*seqs))
-#        self.assertFalse(failing_reads[0] in result or failing_reads[1] in result)
+    @given(reads_and_indices)
+    def test_always_less_or_equal_size(self, seqs):
+        self.assertLessEqual(ilen(qual_filter(*seqs)), ilen(seqs[1]))
 
     @given(reads_and_indices)
-    @hypothesis.settings(max_examples=100)
+    def test_result_is_even(self, seqs):
+        self.assertTrue(ilen(qual_filter(*seqs)) % 2 == 0)
+
+    @given(reads_and_indices)
+    def test_result_is_interleaved(self, seqs):
+        result = qual_filter(*seqs)
+        pairs = partition(2, result)
+        matches = map(lambda (x,y): x.id == y.id, pairs)
+        self.assertTrue(all(matches))
+
+    @given(reads_and_indices)
+    @hypothesis.settings(max_examples=5)
+    def test_drops_all_if_all_lower(self, seqs):
+        (_min, reads, i1, i2) = seqs
+        assume(not any(map(above_min(_min), i1+i2)))
+        result = qual_filter(*seqs)
+        self.assertEqual([], list(result))
+
+    @given(reads_and_indices)
+    def test_drops_none_if_all_above(self, seqs):
+        (_min, reads, i1, i2) = seqs
+        assume(all(map(above_min(_min), i1)))
+        assume(all(map(above_min(_min), i2)))
+        result = qual_filter(*seqs)
+        self.assertEqual(reads, list(result))
+
+    @given(reads_and_indices)
+    def test_drops_some_if_any_lower(self, seqs):
+        (_min, reads, i1, i2) = seqs
+        assume(not all(map(above_min(_min), i1 + i2)))
+        result = qual_filter(*seqs)
+        self.assertLess(ilen(result), ilen(reads))
+
+    def run_io(self, seqs):
+       names =  ['r', 'i1', 'i2']
+       outfile = 'foo'
+       map(partial(SeqIO.write, format='fastq'), seqs[1:], names)
+       cmd = sh.Command('jip_modules/interleaved_index_filter.jip')
+       cmd(names[0], index1=names[1], index2=names[2], minimum=seqs[0], o=outfile) # could use stdout
+       result = list(SeqIO.parse(outfile, 'fastq'))
+       os.remove(outfile)
+       return result
+
+
+    @given(reads_and_indices)
+    @hypothesis.settings(max_examples=20)
+    def test_drops_some_if_any_lower_with_IO(self, seqs):
+        (_min, reads, i1, i2) = seqs
+        assume(not all(map(above_min(_min), i1 + i2)))
+        result = self.run_io(seqs)
+        self.assertLess(ilen(result), ilen(reads)*2)
+
+    @given(reads_and_indices)
+    def test_drops_correct_seq(self, seqs):
+        (_min, reads, i1, i2) = seqs
+        assume(not all(map(above_min(_min), i1)))
+        first_failing_index = ilen(takewhile(above_min(_min), i1))
+        failing_reads = reads[first_failing_index*2:first_failing_index*2+2]
+        result = list(qual_filter(*seqs))
+        self.assertFalse(failing_reads[0] in result or failing_reads[1] in result)
+
+    @given(reads_and_indices)
+    @hypothesis.settings(max_examples=10)
     def test_drops_correct_seq_IO(self, seqs):
         (_min, reads, i1, i2) = seqs
         assume(not all(map(above_min(_min), i1)))
         #NOTE: below only works if their is actually a failing read
         first_failing_index = ilen(takewhile(above_min(_min), i1))
         failing_reads = reads[first_failing_index*2:first_failing_index*2+2]
-        #import ipdb; ipdb.set_trace()
         result = self.run_io(seqs)
         result = list(result)
-        print result
         self.assertFalse(failing_reads[0] in result or failing_reads[1] in result)
 
-#    @given(io_matrix)
-#    def test_with_io_matrix(self, seqs_and_io_funcs):
-#        import ipdb; ipdb.set_trace()
-#        (_min, reads, i1, i2, add_input, get_output) = seqs_and_io_funcs
-#        index_names =  ['i1', 'i2']
-#        map(partial(SeqIO.write, format='fastq'), [i1, i2], index_names)
-#        cmd = sh.Command('jip_modules/interleaved_index_filter.jip')
-#        cmd = add_input(cmd).bake(minimum=_min, index1='i1', index2='i2')
-#        raw_result = get_output(cmd)
-#        result = list(SeqIO.parse(raw_result, 'fastq'))
-#        first_failing_index = ilen(takewhile(above_min(_min), i1)) if not all(map(above_min(_min), i1)) else None
-#        if first_failing_index is None:
-#            self.assertEqual(result, reads, "Reads should've been equal")
-#        failing_reads = reads[first_failing_index*2:first_failing_index*2+2]
-#        self.assertFalse(failing_reads[0] in result or failing_reads[1] in result, "Read should've been dropped at index %s" % first_failing_index*2)
+    @given(io_matrix)
+    @hypothesis.settings(max_examples=20)
+    def test_with_io_matrix(self, seqs_and_io_funcs):
+        (_min, reads, i1, i2, add_input, get_output) = seqs_and_io_funcs
+        assume(all(map(above_min(_min), i2)))
+        index_names =  ['i1', 'i2']
+        map(partial(SeqIO.write, format='fastq'), [i1, i2], index_names)
+        cmd = sh.Command('jip_modules/interleaved_index_filter.jip')
+        cmd = add_input(cmd).bake(minimum=_min, index1='i1', index2='i2')
+        raw_result = get_output(cmd)
+        result = list(SeqIO.parse(raw_result, 'fastq'))
+        first_failing_index = ilen(takewhile(above_min(_min), i1)) if not all(map(above_min(_min), i1)) else None
+        if first_failing_index is None:
+            seq = lambda x: str(x.seq)
+            self.assertEqual(map(seq, result), map(seq, reads), "Reads should've been equal")
+        else:
+            failing_reads = reads[first_failing_index*2:first_failing_index*2+2]
+            self.assertFalse(failing_reads[0] in result or failing_reads[1] in result, "Read should've been dropped at index %s" % first_failing_index*2)
+        raw_result.close()
+        if hasattr(raw_result, 'name'): os.remove(raw_result.name)
 
 
 
@@ -175,3 +178,4 @@ if __name__ == '__main__':
 # index files should be unchanged
 # the number of reads left should be original - number of bad reads in each index which don't overlap
 # can use find(strategy, boolean)
+# be more precise: map(operator.or, map(above_min(_min), i1), map(above_min(_min), i2))
