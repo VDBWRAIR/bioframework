@@ -69,3 +69,6 @@ target/
 *~
 *.swp
 *.swo
+
+# Project ignores
+tests/testoutput

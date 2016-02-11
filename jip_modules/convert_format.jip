@@ -4,13 +4,9 @@
 # extensions of the files
 #
 # Usage:
-#    convert_format [-i <input>] [--in-format <informat>] [--out-format <outformat>] [-o <output>]
+#    convert_format [<input>] [--in-format <informat>] [--out-format <outformat>] [-o <output>]
 #
 # Options:
-#    -i, --input=<input>     The input to convert. File extension dictates format
-#                            unless stdin is specified, then you must supply
-#                            output format option.
-#                            [Default: stdin]
 #    --in-format=<informat>  This is autodetected via the extension of the output
 #                            file, but can be overidden here.
 #    --out-format=<informat> Same as input-format, but specifies the output format
@@ -18,6 +14,12 @@
 #                            If unspecified the output will go to standard output
 #                            as fastq.
 #                            [Default: stdout]
+#
+# Help:
+#    <input>     The input to convert. File extension dictates format
+#                unless stdin is specified, then you must supply
+#                output format option.
+#                [Default: stdin]
 #%begin validate
 if not options.input.get() and not options.in_format:
     validation_error("Have to supply input format if input is stdin")

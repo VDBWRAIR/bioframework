@@ -1,0 +1,14 @@
+#!/usr/bin/env jip
+#
+# Usage:  
+#    index_filter_quality <input> [-o <output>] --minimum <minimum>
+#
+# Options:
+#  -o, --output=<output>     Output files [default: stdout]
+#  -q, --minimum=<minimum>  Minimum quality of the index file
+
+#%begin command python
+from bioframework.index_filter import filter_on_index_quality 
+filter_index("${input}", "${output}", "${min_qual}") 
+#%end
+

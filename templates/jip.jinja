@@ -1,0 +1,36 @@
+#!/usr/bin/env jip
+#
+# {{desc}}
+#
+# Usage:
+#   {{cmd}} ([-f <forward> -r <reverse>] | [-u <unpaired>]) [-o <output>...] {% for opt in opts if opt.required %} [--{{opt.long}} <{{opt.name}}>] {% endfor %} {% for opt in opts if not opt.required %} --{{opt.long}} <{{opt.name}}> {% endfor %}
+#
+#
+#
+# Options:
+{% for opt in opts -%} 
+#   -{{opt.short}}, --{{opt.long}}=<{{opt.name}}>  {{opt.description}}
+{% endfor -%}
+#   -u, --unpaired=<unpaired>  The unpaired fastq input
+#   -f, --forward=<forward>    The forward fastq input
+#   -r, --reverse=<reverse>    The reverse fastq input
+#   -o, --output=<output>      Output files [default: stdout]
+
+
+#%begin validate
+
+if options.unpaired and (options.forward or options.reverse):
+    validation_error("Must choose either paired or unpaired")
+
+#%end
+
+#%begin command bash
+
+if [ "${unpaired}" ]
+then
+    {{unpaired_cmd}} 
+else
+    {{paired_cmd}} 
+fi
+
+#%end
