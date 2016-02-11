@@ -6,4 +6,7 @@
 #   -CN <CN>  Another tag
 #   -o, --output=<output>       Output fastq. If input was interleave, output will be as well
 
-tagreads ${input|else('/dev/stdin')} ${SM|arg} ${CN|arg} ${output|else('/dev/stdout')}
+#tagreads ${input|else('/dev/stdin')} ${SM|arg} ${CN|arg} ${output|else('/dev/stdout')}
+
+tagreads ${input|else('/dev/stdin')} ${SM|arg} ${CN|arg}  |\
+samtools view -Sbh - | samtools sort - ${output} | samtools index ${output} 
