@@ -11,9 +11,7 @@
 
 #%begin command python
 
-from bioframes import consensus
-result = consensus.make_consensus("${bam}", "${ref}", "${vcf}")
-with open("${output}", 'w') as out:
-    out.write(result)
+from bioframework import consensus
+consens.run("${bam}", "${ref}", "${vcf}", "${out}")
 
 #%end
