@@ -48,6 +48,28 @@ def make_consensus(reference, muts):
 ##############
 #  Mappers   #
 ##############
+
+#when there are multiple alts, zip through with each of them
+#zip(*alts), character by character. compare the percentages, and
+#sum the percentages for each base. (groupby, sum) pick each character (call each base) based on the given rules (using call_base).
+def call_many(min_depth, majoirty_percentage, rec):
+    if hasattr(rec['alt'], '__iter__'):
+        fields = ['AO', 'DP', 'alt']
+        vals = zip(*get(*fields)(rec))
+        muts = map(lambda items: dict(zip(fields, items)), vals)
+        def extract(rec):
+            AO, DP, alt = get(*fields)(rec)
+            #length = len(alt)
+            #return repeat(AO, length), repeat(DP, length), alt
+            return repeat(AO), repeat(DP), alt
+
+        def call_multiple(*recs):
+            for (ao, dp, alt) in zip(*recs):
+                groups = groupby(recs, get('alt'))
+                #map() 
+        pass #prep and map using call_base
+    else:
+        return call_base(min_depth, majoirty_percentage, rec)
 @contract(min_depth=int, majoirty_percentage=int, rec=dict, returns='tuple(str, str, int)')
 def call_base(min_depth, majoirty_percentage, rec):
     '''if a base is under the min depth, it gets called as an `N`.
