@@ -9,8 +9,6 @@ Options:
     --mind=<mind>           minimum depth to call base non-N [default: 10]
     --output,-o=<output>       output file [default: ]
 """
-
-
 from toolz.itertoolz import first, rest, peek
 from operator import itemgetter as get
 from toolz import compose, curry
@@ -35,18 +33,6 @@ AMBIGUITY_TABLE = { 'A': 'A', 'T': 'T', 'G': 'G', 'C': 'C', 'N': 'N',
 
 MAJORITY_PERCENTAGE = 80
 MIN_DEPTH = 10
-
-########################
-# Function combintaors #
-########################
-
-''' just a way to compose filters and mapping functions together '''
-def compose_transormer(transformer, combinator, *funcs):
-    return partial(transformer, reduce(combinator, funcs))
-_and = lambda f,g: lambda x: f(x) and g(x)
-compose_filters = partial(compose_transormer, ifilter, _and)
-compose_mappers = partial(compose_transormer, imap, compose)
-
 
 ###########
 # Reducer #
@@ -132,37 +118,11 @@ def call_many(min_depth, majority_percentage, _rec):
     result = takewhile(bool, res)
     return (ref, ''.join(result), pos)
 
-
-#@contract(min_depth=int, majoirty_percentage=int, rec=dict, returns='tuple(str, str, int)')
-#DEPRECATED
-def call_base(min_depth, majoirty_percentage, rec):
-#DEPRECATED
-    '''if a base is under the min depth, it gets called as an `N`.
-    If the alternate base is >= `majoirty_percentage`, it will be
-    converted to an ambiguous base if it includes multiple bases.
-    Otherwise, the reference base replaces itself (gets ignored).
-    Returns a tuple of the form:
-        (referene_base, alternate_base, position)
-        where reference_base == alternate_base if the reference was preferred.'''
-    get_ambiguous = compose(lambda x: AMBIGUITY_TABLE.get(x, x), ''.join, sorted)
-    if rec['DP'] < min_depth: alt = 'N'# (rec['ref'], 'N', rec['POS'])
-    elif alt_over_percent(majoirty_percentage)(rec):
-        alt = get_ambiguous(rec['alt'])
-    else: alt = rec['ref']
-    return (rec['ref'], alt, rec['pos'])
-
 def flatten_vcf_record(rec):
     return merge({
   'alt' : rec.ALT, 'ref' : rec.REF,
   'pos' : rec.POS, 'chrom' : rec.CHROM},
         rec.INFO)
-
-##############
-#  Filters   #
-##############
-ref_and_alt_differ = lambda x: x[0] != x[1]
-alt_over_percent =  lambda n: lambda rec: rec['AO']/float(rec['DP']) > (n/float(100))
-
 
 ##############
 # Group By   #
@@ -180,20 +140,20 @@ def group_muts_by_refs(references, muts):
 ###############
 # Runner      #
 ###############
+
 #@contract(references='SeqRecord', muts='seq(dict)', mind=int, majority=int)
 def all_consensuses(references, muts, mind, majority):
     ''' generates conesnsuses, including for flu and other mult-reference VCFs.
     applies filters and base callers to the mutations.
     then builds the consensus using these calls and `make_consensus`'''
-    mappers = [partial(call_many, mind, majority)]
-    filters = [ref_and_alt_differ]
     muts_by_ref = group_muts_by_refs(references, muts)
-    muts = map(compose(list, get(1)), muts_by_ref)
-    def single_ref_consensus(recs, ref):
-        fix_recs = compose(compose_filters(*filters), compose_mappers(*mappers))
-        ref_str = str(ref.seq)
-        return make_consensus(ref_str, fix_recs(recs))
-    return references, imap(single_ref_consensus, muts, references)
+    mut_groups = map(compose(list, get(1)), muts_by_ref)
+    def single_consensus(muts, ref):
+        the_muts = map(partial(call_many, mind, majority), muts)
+        ref_and_alt_differ = lambda x: x[0] != x[1]
+        real_muts = filter(ref_and_alt_differ, the_muts)
+        return make_consensus(str(ref.seq), real_muts)
+    return references, imap(single_consensus, mut_groups, references)
 
 
 ##########
