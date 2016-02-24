@@ -1,10 +1,26 @@
+"""
+Usage:
+     consensus --ref <ref> --vcf <vcf> [--mind <mind>] [--majority <majority>] [-o <output>]
+
+Options:
+    --ref=<ref>             Reference fasta file
+    --vcf=<vcf>             VCF output
+    --majority=<majority>   Percentage required [default: 80]
+    --mind=<mind>           minimum depth to call base non-N [default: 10]
+    --output,-o=<output>       output file [default: ]
+"""
+
+
 from toolz.itertoolz import first, rest, peek
 from operator import itemgetter as get
 from toolz import compose, curry
 from functools import partial
-from toolz.dicttoolz import merge, dissoc
+from toolz.dicttoolz import merge, dissoc, merge_with, valfilter
 from itertools import ifilter, imap, groupby, takewhile, repeat, starmap, izip_longest
-from contracts import contract
+#from contracts import contract
+import os, sys
+from docopt import docopt
+from schema import Schema, Use
 from Bio import SeqIO, SeqRecord
 import vcf
 
@@ -42,38 +58,27 @@ def make_consensus(reference, muts):
     def _do_build((accString, string, lastPos), (x, y, bigPos)):
         pos = bigPos - lastPos
         return (accString + (string[:pos] + y), string[pos+len(x):],  bigPos+len(x))
-    return reduce(_do_build, muts, ('', reference, 0))
+    return reduce(_do_build, muts, ('', reference, 0))[0]
 
 
 ##############
 #  Mappers   #
 ##############
 
-#when there are multiple alts, zip through with each of them
-#zip(*alts), character by character. compare the percentages, and
-#sum the percentages for each base. (groupby, sum) pick each character (call each base) based on the given rules (using call_base).
-from toolz.dicttoolz import merge_with
-#@contract(dp=int,ref=str,alts='dict(string,int)')
-from toolz.dicttoolz import valfilter
-def find_val(pred, d):
-    res = valfilter(pred, d)
-    return res if res else None
-def find(pred, xs):
-    res = ifilter(pred, xs)
-    try:
-        return next(res)
-    except:
-        return None
 #TODO: Failing Case:
 # a = {'ref': u'AT', 'pos': 2, 'AO': (51771, 41537, 42398, 9342), 'alt': [u'A',
 # u'TT', u'AATTG', u'AAGAA'], 'chrom': u'o', 'DP': 87288}
 #  bioframework.consensus.call_many(10, 80, a)
 
-
+#@contract(dp=int,ref=str,alts='dict(string,int)')
 def call_base_multi_alts(min_depth, majority_percentage, dp, alts, ref):
+    """when there are multiple alts, zip through with each of them
+    zip(*alts), character by character. compare the percentages, and
+    sum the percentages for each base. (groupby, sum) pick each character
+    (call each base) based on the given rules (using call_base)."""
     #TODO: majority_percentage gets ignored, so replace constants
     #TODO: behavior is undefined if sum(AO) > dp.
-    import ipdb; ipdb.set_trace()
+    #import ipdb; ipdb.set_trace()
     if dp < min_depth: #could call REF here sometimes
         return 'N'
     total_ao = lambda: sum(alts.values()) # avoid evaluating unless necessary
@@ -112,7 +117,7 @@ def call_many(min_depth, majority_percentage, _rec):
     longest_len = max(longest_len, len(ref))
     def fill_gap(r):
         ao, s = r
-        return (ao, s + (longest_len - len(s)) * '-')
+        return (ao, str(s) + (longest_len - len(s)) * '-')
     xs = map(fill_gap, muts) # fill in the shorter alts with '-'.
     def merge_sum(x,y):
         return x if y is None else (y if x is None else merge_with(sum, x, y))
@@ -126,7 +131,6 @@ def call_many(min_depth, majority_percentage, _rec):
     # trim None values at the end, (which indicate deletion)
     result = takewhile(bool, res)
     return (ref, ''.join(result), pos)
-    #    return call_base(min_depth, majority_percentage, rec)
 
 
 #@contract(min_depth=int, majoirty_percentage=int, rec=dict, returns='tuple(str, str, int)')
@@ -165,7 +169,7 @@ alt_over_percent =  lambda n: lambda rec: rec['AO']/float(rec['DP']) > (n/float(
 ##############
 def group_muts_by_refs(references, muts):
     '''group and sort the mutations so that they match the order of the references.'''
-    mut_groups = groupby(muts, get('CHROM'))
+    mut_groups = groupby(muts, get('chrom'))
     def index_of_ref(key):
         return sum(1 for _ in takewhile(lambda x: x.id != key, references))
     muts_by_ref = sorted(mut_groups, key=index_of_ref)
@@ -184,31 +188,45 @@ def all_consensuses(references, muts, mind, majority):
     mappers = [partial(call_many, mind, majority)]
     filters = [ref_and_alt_differ]
     muts_by_ref = group_muts_by_refs(references, muts)
-    muts = imap(get(0), muts_by_ref)
+    muts = map(compose(list, get(1)), muts_by_ref)
     def single_ref_consensus(recs, ref):
-        fix_recs = compose(compose_filters(filters), compose_mappers(mappers))
+        fix_recs = compose(compose_filters(*filters), compose_mappers(*mappers))
         ref_str = str(ref.seq)
         return make_consensus(ref_str, fix_recs(recs))
     return references, imap(single_ref_consensus, muts, references)
 
 
-
 ##########
 # I/O    #
 ##########
-
 def consensus_str(ref, consensus):
     return ">{0}:Consensus\n{1}".format(ref.id, consensus)
 
-make_fasta_str = compose('\n'.join,
-                         partial(imap, consensus_str), all_consensuses)
 
 #@contract(ref_fasta=str, vcf=str, mind=int, majority=int)
-def run(ref_fasta, freebayes_vcf, outpath, mind, majority):
+def run(ref_fasta, freebayes_vcf, outfile, mind, majority):
     refs = SeqIO.parse(ref_fasta, 'fasta')
-    with open(freebayes_vcf, 'r') as vcf_handle, open(outpath, 'w') as out:
+    with open(freebayes_vcf, 'r') as vcf_handle:
         muts = imap(flatten_vcf_record, vcf.Reader(vcf_handle))
-        result = make_fasta_str(refs, muts, mind, majority)
-        out.write(result)
+        refs, muts = list(refs), list(muts)
+        refs, seqs = all_consensuses(refs, muts, mind, majority)
+        strings = imap(consensus_str, refs, seqs)
+        result = '\n'.join(strings)
+        outfile.write(result)
+        outfile.close()
     return 0
 
+def main():
+    scheme = Schema(
+        { '--vcf' : os.path.isfile,
+          '--ref' : os.path.isfile,
+          '--majority' : Use(int),
+          '--mind' : Use(int),
+          '--output' : Use(lambda x: sys.stdout if not x else open(x, 'w'))})
+    raw_args = docopt(__doc__, version='Version 1.0')
+    args = scheme.validate(raw_args)
+    run(args['--ref'], args['--vcf'], args['--output'],
+        args['--mind'], args['--output'])
+
+if __name__ == '__main__':
+    main()
