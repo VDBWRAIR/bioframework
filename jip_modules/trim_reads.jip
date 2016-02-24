@@ -8,7 +8,6 @@
 # Options:
 #   -p, --paired                Indicates that the input is paired-interleave format otherwise
 #                               the input is assumed to be unpaired fastq
-#                               [Default: stdin]
 #   -o, --output=<output>       Output fastq. If input was interleave, output will be as well
 #                               [default: stdout]
 #   -t, --trim-n                Trim N's from ends of reads
@@ -24,6 +23,7 @@
 #                               Ex. -x -10 would remove 10 bases from the end
 #                               Ex. -x 10 -10 would remove 10 bases from front and end
 #%begin init
+options['input'].streamable = True
 #%end
 
 #%begin validate

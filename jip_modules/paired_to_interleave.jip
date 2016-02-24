@@ -6,8 +6,6 @@
 #   paired_to_interleave [<input>...] [--out-format <out-format>] [-o <output>]
 #
 # Options:
-#   -f, --forward=<forward>   The forward fastq input
-#   -r, --reverse=<reverse>   The reverse fastq input
 #   -o, --output=<output>     The interleaved output [default: stdout]
 #   --out-format=<outformat>  The output format [default: fastq]
 #

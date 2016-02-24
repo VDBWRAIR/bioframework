@@ -6,11 +6,27 @@
 # Options:
 #  -o, --output=<output>    Output files [default: stdout]
 #  -q, --minimum=<minimum>  Minimum quality of the index file
+#                           Any index qualities less than this are filtered
+#                           Qualities that are greater than or equal are kept
 #  -1, --index1=<index1>    Index file from MiSeq
 #  -2, --index2=<index2>    Index file from MiSeq
 # 
 # Help:
-#  <input>   Interleaved fastq file
+#  <input>   Interleaved fastq file or read from stdin
+#
+#  Filters out reads based on their matching index inside of supplied index1 and index2
+#   fastq files.
+#  The identifiers in the index1 fastq file must match with reads inside of the forward
+#   reads in the input interleaved fastq.
+#  Similarily, the index2 fastq identifiers must match to reads inside the reverse
+#   reads in the input interleaved fastq.
+#
+#  If either index is too low, both the forward and reverse will be filtered out
+#   to ensure that the interleaved output is kept intact.
+
+#%begin init
+options['input'].streamable = True
+#%end
 
 #%begin command python
 from bioframework.index_filter import filter_on_index_quality_interleaved
