@@ -92,11 +92,8 @@ def call_base_multi_alts(min_depth, majority_percentage, dp, alts, ref):
     return AMBIGUITY_TABLE[as_ambiguous]
 
 
-def call_many(min_depth, majority_percentage, _rec):
+def call_many(min_depth, majority_percentage, rec):
     #TODO: switch to generators
-    if not hasattr(_rec['alt'], '__iter__'): #TODO: put this somewhere else
-        rec = merge(_rec, dict(alt=[_rec['alt']], AO=[_rec['AO']]))
-    else: rec = _rec
     muts = zip(rec['AO'], rec['alt'])
     ref, dp, pos = rec['ref'], rec['DP'], rec['pos']
     longest_len = max(map(lambda x: len(x[-1]), muts))
@@ -119,10 +116,13 @@ def call_many(min_depth, majority_percentage, _rec):
     return (ref, ''.join(result), pos)
 
 def flatten_vcf_record(rec):
-    return merge({
+    _rec = merge({
   'alt' : rec.ALT, 'ref' : rec.REF,
   'pos' : rec.POS, 'chrom' : rec.CHROM},
         rec.INFO)
+    if not hasattr(_rec['alt'], '__iter__'): #TODO: put this somewhere else
+        return merge(_rec, dict(alt=[_rec['alt']], AO=[_rec['AO']]))
+    else: return _rec
 
 ##############
 # Group By   #
