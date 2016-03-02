@@ -129,13 +129,16 @@ def flatten_vcf_record(rec):
 ##############
 def group_muts_by_refs(references, muts):
     '''group and sort the mutations so that they match the order of the references.'''
-    mut_groups = groupby(muts, get('chrom'))
+    #NOTE: muts will already be "sorted" in that they are grouped together in the vcf
+    #fix the groupby so it doesn't incidentally drain the first object of the group
+    unzip = lambda x: zip(*x)
+    chroms, groups = unzip(map(lambda kv: (kv[0], list(kv[1])), groupby(muts, get('chrom'))))
     def index_of_ref(key):
         chrom=key[0]
         assert(type(chrom) == str)
         index_of_chrom =  map(lambda x: x.id, references).index(chrom)
         return index_of_chrom
-    muts_by_ref = sorted(mut_groups, key=index_of_ref)
+    _, muts_by_ref = unzip(sorted(zip(chroms, groups), key=index_of_ref))
     return muts_by_ref
 
 
