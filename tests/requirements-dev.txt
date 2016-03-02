@@ -4,3 +4,4 @@ python-coveralls
 testfixtures
 sh
 hypothesis
+https://github.com/VDBWRAIR/biotest

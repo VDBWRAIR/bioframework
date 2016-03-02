@@ -23,6 +23,7 @@ setup(
     install_requires = [
         'pyjip',
         'toolz',
+        'docopt',
     ],
     data_files=[
         (join(sys.prefix,'bin'), jip_modules()),
