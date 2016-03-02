@@ -131,7 +131,10 @@ def group_muts_by_refs(references, muts):
     '''group and sort the mutations so that they match the order of the references.'''
     mut_groups = groupby(muts, get('chrom'))
     def index_of_ref(key):
-        return sum(1 for _ in takewhile(lambda x: x.id != key, references))
+        chrom=key[0]
+        assert(type(chrom) == str)
+        index_of_chrom =  map(lambda x: x.id, references).index(chrom)
+        return index_of_chrom
     muts_by_ref = sorted(mut_groups, key=index_of_ref)
     return muts_by_ref
 
