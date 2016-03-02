@@ -44,7 +44,8 @@ def make_consensus(reference, muts):
     def _do_build((accString, string, lastPos), (x, y, bigPos)):
         pos = bigPos - lastPos
         return (accString + (string[:pos] + y), string[pos+len(x):],  bigPos+len(x))
-    return reduce(_do_build, muts, ('', reference, 0))[0]
+    result, remaining, _ = reduce(_do_build, muts, ('', reference, 0))
+    return result + remaining
 
 
 ##############
@@ -89,7 +90,7 @@ def call_base_multi_alts(min_depth, majority_percentage, dp, alts, ref):
     over20 = valfilter(over_depth(0.2), alts_with_ref)
     as_ambiguous = ''.join(sorted(over20.keys()))
     # this could return a single base, (including the reference), becuase i.e.  A => A in the ambiguity table
-    return AMBIGUITY_TABLE[as_ambiguous]
+    return AMBIGUITY_TABLE[as_ambiguous] if as_ambiguous != '' else ''
 
 
 def call_many(min_depth, majority_percentage, rec):
@@ -153,13 +154,15 @@ def all_consensuses(references, muts, mind, majority):
     applies filters and base callers to the mutations.
     then builds the consensus using these calls and `make_consensus`'''
     muts_by_ref = group_muts_by_refs(references, muts)
-    mut_groups = map(compose(list, get(1)), muts_by_ref)
+    #mut_groups = map(compose(list, get(1)), muts_by_ref)
+    #real_muts = filter(ref_and_alt_differ, the_muts)
     def single_consensus(muts, ref):
         the_muts = map(partial(call_many, mind, majority), muts)
         ref_and_alt_differ = lambda x: x[0] != x[1]
-        real_muts = filter(ref_and_alt_differ, the_muts)
+        # vcf is index-starting-at-1
+        real_muts = map(lambda (a,b,pos): (a,b,pos-1), filter(ref_and_alt_differ, the_muts))
         return make_consensus(str(ref.seq), real_muts)
-    return references, imap(single_consensus, mut_groups, references)
+    return references, imap(single_consensus, muts_by_ref, references)
 
 
 ##########
