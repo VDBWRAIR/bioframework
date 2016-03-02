@@ -81,17 +81,17 @@ class ConsesusExampleTest(unittest.TestCase):
 
 from collections import Counter
 countof = lambda c: lambda x: Counter(x).get(c, 0)
-#class ConsensusHypothesisTest(unittest.TestCase):
-#    @st.random_module
-#    @given(ref_with_vcf_dicts_strategy_factory())
-#    def test_n_count(self, ref_and_muts):
-#        ref, muts = ref_and_muts
-#        originalNs = countof('N')(ref)
-#        assume(not filter(lambda x: 'N' in x, muts))
-#        expectedNs = len(filter(_['DP'] < 10, muts))  + originalNs
-#        result = just_ref([ref], muts, 10, 80)
-#        self.assertEquals(countof('N')(result), expectedNs)
-#
-#
-#
-#
+class ConsensusHypothesisTest(unittest.TestCase):
+    #@st.random_module
+    @given(ref_with_vcf_dicts_strategy_factory(), st.random_module())
+    def test_n_count(self, ref_and_muts, rand):
+        ref, muts = ref_and_muts
+        originalNs = countof('N')(ref)
+        assume(not filter(lambda x: 'N' in x, muts))
+        expectedNs = len(filter(_['DP'] < 10, muts))  + originalNs
+        result = just_ref([ref], muts, 10, 80)
+        self.assertEquals(countof('N')(result), expectedNs)
+
+
+
+
