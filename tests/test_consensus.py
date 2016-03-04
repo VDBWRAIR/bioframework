@@ -91,7 +91,7 @@ def run_cons(*args):
     _, alt_and_cons = all_consensuses(*args)
     cons, alts  = zip(*alt_and_cons)
     return  cons[0], alts[0]
-class ConsensusHypothesisTest(unittest.TestCase): 
+class ConsensusHypothesisTest(unittest.TestCase):
     #ref_and_muts=(SeqRecord(seq=Seq(u'AAAAAAAAAA', IUPACAmbiguousDNA()), id=u'', name='<unknown name>', description='', dbxrefs=[]), [
 #    {'ref': u'A', 'pos': 1, 'AO': [479, 777, 119, 604], 'alt': [u'G', u'C', u'G', u'TG'], 'chrom': u'', 'DP': 2635},
 #    {'ref': u'A', 'pos': 3, 'AO': [291, 241, 583, 420], 'alt': [u'CTG', u'C', u'G', u'C'], 'chrom': u'', 'DP': 1627}]), rand=random.seed(0))
@@ -102,9 +102,11 @@ class ConsensusHypothesisTest(unittest.TestCase):
         ref, muts = ref_and_muts
         originalNs = countof('N')(ref)
         alts = map(lambda x: x.alt, muts)
-        assume(not any(map(lambda x: 'N' in x, itertools.chain(*alts))))
+        refs = map(lambda x: x.ref, muts)
+        assume(not filter(lambda x: 'N' in x, itertools.chain(*alts)))
+        assume(not filter(lambda x: len(x) > 1, itertools.chain(*alts)))
+        assume(not filter(lambda x: len(x) > 1, refs))
         # needed because  ACGT -> N
-        assume(not filter(lambda x: len(x) > 3, alts))
         expectedNs = len(filter(lambda x: x.DP < 10, muts))  + originalNs
         result = just_ref([ref], muts, 10, 80)
         self.assertEquals(countof('N')(result), expectedNs)
@@ -134,7 +136,7 @@ class ConsensusMetamorphicTests(unittest.TestCase):
         cons1 = just_ref([ref], muts, n1, 80)
         cons2 = just_ref([ref], muts, n2, 80)
         nsCount1, nsCount2 = countof('N')(cons1), countof('N')(cons2)
-        self.assertLessEqual(nsCount1, nsCount2) 
+        self.assertLessEqual(nsCount1, nsCount2)
 
     @given(ref_with_vcf_dicts_strategy)
     def test_consensus_from_consensus_contains_more_alts(self, ref_and_muts):
@@ -147,7 +149,7 @@ class ConsensusMetamorphicTests(unittest.TestCase):
         picked_alts = map(get(1), alts)
         altCounts1 = sum(map(lambda f: f(cons1),  map(countof, picked_alts)))
         altCounts2 = sum(map(lambda f: f(cons2),  map(countof, picked_alts)))
-        self.assertLessEqual(altCounts1, altCounts2) 
+        self.assertLessEqual(altCounts1, altCounts2)
 
 
         #NOTE: the below test appears to be meaningless,
