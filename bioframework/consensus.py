@@ -14,14 +14,17 @@ from operator import itemgetter as get
 from functools import partial
 from itertools import ifilter, imap, groupby, takewhile, repeat, starmap, izip_longest
 import os, sys
+import collections
+
 from typing import Tuple, Dict, List, Iterator, Iterable, Any, Callable, NamedTuple, BinaryIO
 
 from Bio import SeqIO #done
 from Bio.SeqRecord import SeqRecord #done
 import vcf #done
 from vcf.model import _Record
+import sh #todo
 #from toolz import compose
-from toolz.dicttoolz import merge, dissoc, merge_with, valfilter #todo
+from toolz.dicttoolz import merge, dissoc, merge_with, valfilter #done
 from docopt import docopt #ignore
 from schema import Schema, Use #ignore
 #from contracts import contract, new_contract #can ignore
@@ -36,8 +39,6 @@ VCFRow = NamedTuple("VCFRow",
                      ('chrom',str),
                      ('pos', int),
                      ('alt', List[str])])
-#VcfRow = namedtuple("VcfRow", VCFRow._fields) # type: (*Any) -> VCFRow
-
 AMBIGUITY_TABLE = { 'A': 'A', 'T': 'T', 'G': 'G', 'C': 'C', 'N': 'N', 'AC': 'M', 'AG': 'R', 'AT': 'W', 'CG': 'S', 'CT': 'Y', 'GT': 'K', 'ACG': 'V', 'ACT': 'H', 'AGT': 'D', 'CGT': 'B', 'ACGT': 'N' }
 
 MAJORITY_PERCENTAGE = 80
@@ -191,6 +192,17 @@ def all_consensuses(references, muts, mind, majority):
 ##########
 def consensus_str(ref, consensus): # type: (SeqRecord, str) -> str
     return ">{0}:Consensus\n{1}".format(ref.id, consensus)
+
+def zero_coverage_positions(bam_file, ref_file): # type: (str, str) -> Iterable[int]
+    pileup = sh.Command('mpileup')(bam_file, f=ref_file, _iter=True)
+    get_pos = lambda x: int(x.split()[1]) # type: Callable[[str],int]
+    return imap(get_pos, pileup)
+
+#TODO: is pileup 0-based or 1-based index?
+def trim_ref(ref, positions): # type: (str, Iterator[int]) -> str
+    start, end = next(positions), collections.deque(positions, 1)[0]
+    return '-'*start + ref[:start:end] + '-'*(len(ref) - end)
+
 
 
 #@contract(ref_fasta=str, vcf=str, mind=int, majority=int)
