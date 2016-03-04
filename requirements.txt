@@ -2,3 +2,5 @@ pycontracts
 toolz
 pyvcf
 typing
+docopt
+schema
