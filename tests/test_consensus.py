@@ -6,7 +6,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 from hypothesis import given, assume
 from operator import itemgetter as get
-from bioframework.consensus import call_many, all_consensuses, make_consensus
+from bioframework.consensus import call_many, all_consensuses, make_consensus, VCFRow
 import string
 import itertools
 import unittest
@@ -15,7 +15,7 @@ simple_vcf_dict_strategy = st.tuples(st.text(string.ascii_letters),
                      st.integers(min_value=1),
                      st.text(alphabet='ACTGN', min_size=1, max_size=6)) \
                      .flatmap(lambda tup:\
-                          vcf_dict_strategy_factory(*tup))
+                          vcf_dict_strategy_factory(*tup)).map(lambda d: VCFRow(**d))
 pos_int = st.integers(min_value=0)
 
 #TODO: these 10, 80 for trhesh and majority_percentage should be factored out and possibly be strategies themselves
@@ -24,23 +24,23 @@ def just_ref(*args):
 class CallBaseHypothesisTest(unittest.TestCase):
     @given(simple_vcf_dict_strategy, pos_int)
     def test_under_mind_is_N(self, mut, mind):
-        assume(mut['DP'] < mind)
+        assume(mut.DP < mind)
         result = call_many(mind, 80, mut)[1]
         self.assertTrue(all(map(lambda x: x == 'N', result)))
 
     @given(simple_vcf_dict_strategy)
     def test_ao_under_minority_is_ref(self, mut):
-        assume(sum(mut['AO']) / mut['DP'] < 0.2)
+        assume(sum(mut.AO) / mut.DP < 0.2)
         result = call_many(0, 80, mut)[1]
-        self.assertEquals(result, mut['ref'])
+        self.assertEquals(result, mut.ref)
 
     @given(simple_vcf_dict_strategy)
     def test_over_majority_is_alt(self, mut):
         #TODO: this is slow
-        assume(sum(mut['AO']) / mut['DP'] > 0.8)
-        assume(len(mut['alt']) == 1)
+        assume(sum(mut.AO) / mut.DP > 0.8)
+        assume(len(mut.alt) == 1)
         result = call_many(0, 80, mut)[1]
-        self.assertEquals(result, mut['alt'][0])
+        self.assertEquals(result, mut.alt[0])
 
 #Commented out because it's not actually always true,
 # e.g. mut={'ref': u'AA', 'pos': 1, 'AO': [784313725491], 'alt': [u'A'],
@@ -48,9 +48,9 @@ class CallBaseHypothesisTest(unittest.TestCase):
 # should result in AA
 #    @given(simple_vcf_dict_strategy)
 #    def test_over_minoriy_is_not_ref(self, mut):
-#        assume(sum(mut['AO']) / mut['DP'] > 0.2)
+#        assume(sum(mut.AO) / mut.DP > 0.2)
 #        result = call_many(0, 80, mut)[1]
-#        self.assertNotEquals(result, mut['ref'])
+#        self.assertNotEquals(result, mut.ref)
 
 class ConsesusExampleTest(unittest.TestCase):
     def test_make_consensus_example(self):
@@ -62,7 +62,7 @@ class ConsesusExampleTest(unittest.TestCase):
         self.assertEquals(expected, actual)
 
     def test_single_example(self):
-        muts = [{
+        raw_muts = [{
             'pos' : 2,
             'ref' : 'CG',
             'alt' : ['TT'],
@@ -78,12 +78,13 @@ class ConsesusExampleTest(unittest.TestCase):
             'DP' : 150,
             'chrom' : 'X'
         }]
+        muts = map(lambda d: VCFRow(**d), raw_muts)
         ref = make_seqrec('X', 'ACGTACGT')
         expected = 'ATTTAAGT'
         result = just_ref([ref], muts, 10, 80)
         self.assertEquals(expected, result)
 ref_with_vcf_dicts_strategy = ref_with_vcf_dicts_strategy_factory().map(
-    lambda (r, muts): (make_seqrec(muts[0]['chrom'], r), muts))
+    lambda (r, muts): (make_seqrec(muts[0]['chrom'], r), map(lambda d: VCFRow(**d), muts)))
 from collections import Counter
 countof = lambda c: lambda x: Counter(x).get(c, 0)
 def run_cons(*args):
@@ -100,11 +101,11 @@ class ConsensusHypothesisTest(unittest.TestCase):
     def test_n_count(self, ref_and_muts, rand):
         ref, muts = ref_and_muts
         originalNs = countof('N')(ref)
-        alts = map(get('alt'), muts)
+        alts = map(lambda x: x.alt, muts)
         assume(not any(map(lambda x: 'N' in x, itertools.chain(*alts))))
         # needed because  ACGT -> N
         assume(not filter(lambda x: len(x) > 3, alts))
-        expectedNs = len(filter(lambda x: x['DP'] < 10, muts))  + originalNs
+        expectedNs = len(filter(lambda x: x.DP < 10, muts))  + originalNs
         result = just_ref([ref], muts, 10, 80)
         self.assertEquals(countof('N')(result), expectedNs)
 
@@ -119,7 +120,7 @@ class ConsensusHypothesisTest(unittest.TestCase):
     def assume_greater_or_equal_length_when_no_deletions(self, ref_and_muts):
         ref, muts = ref_and_muts
         def has_deletion(mut):
-             filter(lambda x: len(x) < mut['ref'], mut['alt'])
+             filter(lambda x: len(x) < mut.ref, mut.alt)
         assume(not any(map(has_deletion, muts)))
         result = just_ref([ref], muts, 10, 80)
         self.assertLesserEqual(len(ref), len(result))
@@ -138,11 +139,11 @@ class ConsensusMetamorphicTests(unittest.TestCase):
     @given(ref_with_vcf_dicts_strategy)
     def test_consensus_from_consensus_contains_more_alts(self, ref_and_muts):
         ref, muts = ref_and_muts
-        assume(not any(map(lambda x: len(x['alt']) > 1, muts)))
+        assume(not any(map(lambda x: len(x.alt) > 1, muts)))
         n1 = 10
         cons1, alts = run_cons([ref], muts, n1, 80)
         assume(not any(map(lambda x: len(x[0]) > len(x[1]), alts)))
-        cons2, _ = run_cons([make_seqrec(muts[0]['chrom'], cons1)], muts, n1, 80)
+        cons2, _ = run_cons([make_seqrec(muts[0].chrom, cons1)], muts, n1, 80)
         picked_alts = map(get(1), alts)
         altCounts1 = sum(map(lambda f: f(cons1),  map(countof, picked_alts)))
         altCounts2 = sum(map(lambda f: f(cons2),  map(countof, picked_alts)))
@@ -156,7 +157,7 @@ class ConsensusMetamorphicTests(unittest.TestCase):
     def test_lower_majority_required_contains_more_alts(self, ref_and_muts, p1, p2):
         ref, muts = ref_and_muts
         assume(p1 < p2)
-        assume(not any(map(lambda x: len(x['alt']) > 1, muts)))
+        assume(not any(map(lambda x: len(x.alt) > 1, muts)))
         n1 = 10
         cons1, alts = run_cons([ref], muts, n1, p1)
         assume(not any(map(lambda x: len(x[0]) > len(x[1]), alts)))

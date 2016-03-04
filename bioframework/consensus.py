@@ -152,7 +152,7 @@ def group_muts_by_refs(references, muts):
     #NOTE: muts will already be "sorted" in that they are grouped together in the vcf
     #fix the groupby so it doesn't incidentally drain the first object of the group
     unzip = lambda x: zip(*x)
-    chroms, groups = unzip(map(lambda kv: (kv[0], list(kv[1])), groupby(muts, get('chrom'))))
+    chroms, groups = unzip(map(lambda kv: (kv[0], list(kv[1])), groupby(muts, lambda x: x.chrom)))
     #@contract(key='tuple(string,list)')
     def index_of_ref(key): # type: (Tuple[str, List[SeqRecord]]) -> int
         chrom=key[0]
