@@ -3,6 +3,9 @@ sudo: false
 language: python
 python:
   - "2.7"
+cache:
+  directories:
+    - .hypothesis
 install:
   # We do this conditionally because it saves us some downloading if the
   # version is the same.
@@ -29,5 +32,6 @@ install:
 script:
   - nosetests --with-coverage --cover-erase --cover-package=bioframework 
   - pybot tests/*.robot
+  - tests/map_pipe.sh
 after_success:
   - coveralls

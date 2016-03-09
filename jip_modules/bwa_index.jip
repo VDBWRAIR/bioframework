@@ -2,19 +2,24 @@
 # bwa index
 #
 # Usage:
-#   bwa_index -r <reference> [-o <output>]
+#   bwa_index <input> [-o <output>]
 #
 # Options:
-#   -r, --reference <reference>   The fasta file to index
 #   -o, --output <output>         Where to create the index
 #                                 [Default: Same path as reference argument]
+# Help:
+#  <input>  The reference filepath to index
 
 #%begin init
-options['output'].default = "${reference}.bwt"
+options['output'].default = "${input|abs|name}.bwt"
 #%end
 
 #%begin validate
 #%end
 
-cp ${reference|abs} ${output|ext}
-bwa index ${output|ext}
+cmd="cp ${input|abs} ${output|ext}"
+echo $cmd >&2
+$cmd
+cmd="bwa index ${output|ext}"
+echo $cmd >&2
+$cmd
