@@ -24,7 +24,7 @@ import vcf #done
 from vcf.model import _Record
 import sh #todo
 #from toolz import compose
-from toolz.dicttoolz import merge, dissoc, merge_with, valfilter #done
+from toolz.dicttoolz import merge, dissoc, merge_with, valfilter, keyfilter #done
 from docopt import docopt #ignore
 from schema import Schema, Use #ignore
 #from contracts import contract, new_contract #can ignore
@@ -36,6 +36,8 @@ VCFRow = NamedTuple("VCFRow",
                     [('ref', str),
                      ('AO', List[int]),
                      ('DP', int),
+                     ('QA', List[int]),
+                     ('QR', int),
                      ('chrom',str),
                      ('pos', int),
                      ('alt', List[str])])
@@ -43,6 +45,7 @@ AMBIGUITY_TABLE = { 'A': 'A', 'T': 'T', 'G': 'G', 'C': 'C', 'N': 'N', 'AC': 'M',
 
 MAJORITY_PERCENTAGE = 80
 MIN_DEPTH = 10
+#PMut = NamedTuple('PMut', [('AO', int), ('DP', int), ('QA', int), ('QR', int)])
 Mut = Tuple[str, str, int]
 ###########
 # Reducer #
@@ -52,7 +55,8 @@ def make_consensus(reference, muts):
     # type: (str, List[Mut]) -> Tuple[str, List[Mut]]
     ''' Actually builds a consensus string by recursively applying
           the mutations.'''
-    def _do_build((accString, string, lastPos), (x, y, bigPos)):
+    def _do_build(t1, t2): # type: (Tuple[int,str,int], Tuple[str,str,int]) -> Tuple[str,str,int]
+        (accString, string, lastPos), (x, y, bigPos) = t1, t2
         pos = bigPos - lastPos
         return (accString + (string[:pos] + y), string[pos+len(x):],  bigPos+len(x))
     result, remaining, _ = reduce(_do_build, muts, ('', reference, 0))
@@ -77,8 +81,8 @@ def call_base_multi_alts(min_depth, majority_percentage, dp, alts, ref):
     (call each base) based on the given rules (using call_base)."""
     #TODO: majority_percentage gets ignored, so replace constants
     #TODO: behavior is undefined if sum(AO) > dp.
-    if dp < min_depth: #could call REF here sometimes
-        return 'N'
+#    if dp < min_depth: #could call REF here sometimes
+#        return 'N'
     total_ao = lambda: sum(alts.values()) # avoid evaluating unless necessary
 
     if ref is None: # this is an insert
@@ -121,7 +125,7 @@ def call_many(min_depth, majority_percentage, rec):
         ao, nts = ao_and_nts
         return map(merge_sum, acc, [{nt:ao} for nt in nts])
     # create a list of {base : count}, where the index matches the position
-    mut_dicts = reduce(seq_count, xs, [{}])
+    mut_dicts = reduce(seq_count, xs, [{}]) # type: Iterable[Dict[str,int]]
     base_caller = lambda m,r: call_base_multi_alts(min_depth, majority_percentage, dp, m, r) #   # # ?Callable[[Dict[Any,Any], str], str]
     res = map(base_caller, mut_dicts, ref)
     # trim None values at the end, (which indicate deletion)
@@ -136,8 +140,11 @@ def flatten_vcf_record(rec):
   'pos' : rec.POS, 'chrom' : rec.CHROM},
         rec.INFO)
     if not hasattr(_rec['alt'], '__iter__'): #TODO: put this somewhere else
-        d = merge(_rec, dict(alt=[_rec['alt']], AO=[_rec['AO']]))
+        d = merge(_rec, dict(alt=[_rec['alt']],
+                             AO=[_rec['AO']],
+                             QA=[_rec['QA']]))
     else: d = _rec
+    d = keyfilter(VCFRow._fields.__contains__, d)
     return VCFRow(**d)
 
 ##############
@@ -219,7 +226,7 @@ def run(ref_fasta, freebayes_vcf, outfile, mind, majority):
         outfile.close()
     return 0
 
-def main(): # type () -> None
+def main(): # type: () -> None
     scheme = Schema(
         { '--vcf' : os.path.isfile,
           '--ref' : os.path.isfile,

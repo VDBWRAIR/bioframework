@@ -15,6 +15,8 @@ def merge_with(f, d1, d2): # type: (Callable[[V,V2], V3], Dict[K,V], Dict[K,V2])
 def valfilter(f, d): # type: (Callable[[V], bool], Dict[K,V]) -> Dict[K,V]
   pass
 
+def keyfilter(f, d): # type: (Callable[[K], bool], Dict[K,V]) -> Dict[K,V]
+  pass
 
 
 #from typing import Dict, Any, Callable, TypeVar
