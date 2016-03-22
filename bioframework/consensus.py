@@ -14,25 +14,32 @@ from operator import itemgetter as get
 from functools import partial
 from itertools import ifilter, imap, groupby, takewhile, repeat, starmap, izip_longest
 import os, sys
-from typing import Tuple, Dict, List, Iterator, Iterable, Any, Callable
+import collections
+
+from typing import Tuple, Dict, List, Iterator, Iterable, Any, Callable, NamedTuple, BinaryIO
 
 from Bio import SeqIO #done
 from Bio.SeqRecord import SeqRecord #done
 import vcf #done
 from vcf.model import _Record
+import sh #todo
 #from toolz import compose
-from toolz.dicttoolz import merge, dissoc, merge_with, valfilter #todo
+from toolz.dicttoolz import merge, dissoc, merge_with, valfilter #done
 from docopt import docopt #ignore
 from schema import Schema, Use #ignore
-from contracts import contract, new_contract #can ignore
+#from contracts import contract, new_contract #can ignore
+#from mypy.types import VCFRow
 #############
 # Constants #
 #############
-
-AMBIGUITY_TABLE = { 'A': 'A', 'T': 'T', 'G': 'G', 'C': 'C', 'N': 'N',
-                       'AC': 'M', 'AG': 'R', 'AT': 'W', 'CG': 'S', 'CT':
-                       'Y', 'GT': 'K', 'ACG': 'V', 'ACT': 'H', 'AGT': 'D',
-                       'CGT': 'B', 'ACGT': 'N' }
+VCFRow = NamedTuple("VCFRow",
+                    [('ref', str),
+                     ('AO', List[int]),
+                     ('DP', int),
+                     ('chrom',str),
+                     ('pos', int),
+                     ('alt', List[str])])
+AMBIGUITY_TABLE = { 'A': 'A', 'T': 'T', 'G': 'G', 'C': 'C', 'N': 'N', 'AC': 'M', 'AG': 'R', 'AT': 'W', 'CG': 'S', 'CT': 'Y', 'GT': 'K', 'ACG': 'V', 'ACT': 'H', 'AGT': 'D', 'CGT': 'B', 'ACGT': 'N' }
 
 MAJORITY_PERCENTAGE = 80
 MIN_DEPTH = 10
@@ -40,7 +47,7 @@ Mut = Tuple[str, str, int]
 ###########
 # Reducer #
 ###########
-@contract(reference='string', muts='list(tuple(string, string, int))'   )
+#@contract(reference='string', muts='list(tuple(string, string, int))'   )
 def make_consensus(reference, muts):
     # type: (str, List[Mut]) -> Tuple[str, List[Mut]]
     ''' Actually builds a consensus string by recursively applying
@@ -98,10 +105,10 @@ def call_base_multi_alts(min_depth, majority_percentage, dp, alts, ref):
 
 #@contract(min_depth='number,>=0', majority_percentage='number,>=0,<=100', rec='dict', returns='tuple(string, string, int)')
 def call_many(min_depth, majority_percentage, rec):
-    # type: (int, int, Dict) -> Mut
+    # type: (int, int, VCFRow) -> Mut
     #TODO: switch to generators
-    muts = zip(rec['AO'], rec['alt'])
-    ref, dp, pos = rec['ref'], rec['DP'], rec['pos']
+    muts = zip(rec.AO, rec.alt)
+    ref, dp, pos = rec.ref, rec.DP, rec.pos
     longest_len = max(map(lambda x: len(x[-1]), muts))
     longest_len = max(longest_len, len(ref))
     def fill_gap(r):
@@ -115,22 +122,23 @@ def call_many(min_depth, majority_percentage, rec):
         return map(merge_sum, acc, [{nt:ao} for nt in nts])
     # create a list of {base : count}, where the index matches the position
     mut_dicts = reduce(seq_count, xs, [{}])
-    base_caller = partial(call_base_multi_alts, min_depth, majority_percentage, dp) # type: Callable[[Dict[Any,Any], str], str]
+    base_caller = lambda m,r: call_base_multi_alts(min_depth, majority_percentage, dp, m, r) #   # # ?Callable[[Dict[Any,Any], str], str]
     res = map(base_caller, mut_dicts, ref)
     # trim None values at the end, (which indicate deletion)
     result = takewhile(bool, res)
     return (ref, ''.join(result), pos)
 
-@contract(rec='dict',returns='dict')
+#@contract(rec='dict',returns='dict')
 def flatten_vcf_record(rec):
-    # type: (_Record) -> Dict[str, Any]
+    # type: (_Record) -> VCFRow
     _rec = merge({
   'alt' : rec.ALT, 'ref' : rec.REF,
   'pos' : rec.POS, 'chrom' : rec.CHROM},
         rec.INFO)
     if not hasattr(_rec['alt'], '__iter__'): #TODO: put this somewhere else
-        return merge(_rec, dict(alt=[_rec['alt']], AO=[_rec['AO']]))
-    else: return _rec
+        d = merge(_rec, dict(alt=[_rec['alt']], AO=[_rec['AO']]))
+    else: d = _rec
+    return VCFRow(**d)
 
 ##############
 # Group By   #
@@ -138,16 +146,16 @@ def flatten_vcf_record(rec):
 #NOTE: could possibly drop lists, use fn.Stream all the time,
 # and write a Stream instance for contracts like:
 # https://github.com/AndreaCensi/contracts/blob/831ec7a5260ceb8960540ba0cb6cc26370cf2d82/src/contracts/library/lists.py
-@contract(references='list[N]($SeqRecord),N>0', muts='list(dict)',returns='tuple(list(dict))')
+#@contract(references='list[N]($SeqRecord),N>0', muts='list(dict)',returns='tuple(list(dict))')
 def group_muts_by_refs(references, muts):
-    # type: (List[SeqRecord], List[Dict[Any, Any]]) -> Iterable[List[Dict]]
+    # type: (List[SeqRecord], List[VCFRow]) -> List[List[VCFRow]]
     '''group and sort the mutations so that they match the order of the references.'''
     #NOTE: muts will already be "sorted" in that they are grouped together in the vcf
     #fix the groupby so it doesn't incidentally drain the first object of the group
     unzip = lambda x: zip(*x)
-    chroms, groups = unzip(map(lambda kv: (kv[0], list(kv[1])), groupby(muts, get('chrom'))))
-    @contract(key='tuple(string,list)')
-    def index_of_ref(key):
+    chroms, groups = unzip(map(lambda kv: (kv[0], list(kv[1])), groupby(muts, lambda x: x.chrom)))
+    #@contract(key='tuple(string,list)')
+    def index_of_ref(key): # type: (Tuple[str, List[SeqRecord]]) -> int
         chrom=key[0]
         index_of_chrom =  map(lambda x: x.id, references).index(chrom)
         return index_of_chrom
@@ -162,13 +170,15 @@ def group_muts_by_refs(references, muts):
 
 #@contract(references='SeqRecord', muts='seq(dict)', mind=int, majority=int)
 def all_consensuses(references, muts, mind, majority):
-    # type: (Iterable[SeqRecord], Iterable[Dict[Any,Any]], int, int) -> Tuple[List[str], Iterator[Tuple[str, List[Mut]]]]
+    # type: (List[SeqRecord], List[VCFRow], int, int) -> Tuple[List[SeqRecord], Iterable[Tuple[str, List[Mut]]]]
     ''' generates conesnsuses, including for flu and other mult-reference VCFs.
     applies filters and base callers to the mutations.
     then builds the consensus using these calls and `make_consensus`'''
     muts_by_ref = group_muts_by_refs(references, muts)
     def single_consensus(muts, ref):
-        the_muts = map(partial(call_many, mind, majority), muts)
+        # type: (List[VCFRow], SeqRecord) -> Tuple[str, List[Mut]]
+        #the_muts = map(partial(call_many, mind, majority), muts)
+        the_muts = map(lambda x: call_many(mind, majority, x), muts)
         ref_and_alt_differ = lambda x: x[0] != x[1]
         # vcf is index-starting-at-1
         #real_muts = map(lambda (a,b,pos): (a,b,pos-1), filter(ref_and_alt_differ, the_muts))
@@ -183,16 +193,27 @@ def all_consensuses(references, muts, mind, majority):
 def consensus_str(ref, consensus): # type: (SeqRecord, str) -> str
     return ">{0}:Consensus\n{1}".format(ref.id, consensus)
 
+def zero_coverage_positions(bam_file, ref_file): # type: (str, str) -> Iterable[int]
+    pileup = sh.Command('mpileup')(bam_file, f=ref_file, _iter=True)
+    get_pos = lambda x: int(x.split()[1]) # type: Callable[[str],int]
+    return imap(get_pos, pileup)
+
+#TODO: is pileup 0-based or 1-based index?
+def trim_ref(ref, positions): # type: (str, Iterator[int]) -> str
+    start, end = next(positions), collections.deque(positions, 1)[0]
+    return '-'*start + ref[:start:end] + '-'*(len(ref) - end)
+
+
 
 #@contract(ref_fasta=str, vcf=str, mind=int, majority=int)
 def run(ref_fasta, freebayes_vcf, outfile, mind, majority):
-    # type: (str, str, str, int, int) -> int
-    refs = SeqIO.parse(ref_fasta, 'fasta')
+    # type: (str, str, BinaryIO, int, int) -> int
+    _refs = SeqIO.parse(ref_fasta, 'fasta')
     with open(freebayes_vcf, 'r') as vcf_handle:
-        muts = imap(flatten_vcf_record, vcf.Reader(vcf_handle))
-        refs, muts = list(refs), list(muts)
-        refs, seqs_and_muts = all_consensuses(refs, muts, mind, majority)
-        strings = imap(consensus_str, refs, imap(get(0), seqs_and_muts))
+        _muts = map(flatten_vcf_record, vcf.Reader(vcf_handle))
+        refs, muts = list(_refs), list(_muts)
+        the_refs, seqs_and_muts = all_consensuses(refs, muts, mind, majority)
+        strings = imap(consensus_str, the_refs, imap(get(0), seqs_and_muts))
         result = '\n'.join(strings)
         outfile.write(result)
         outfile.close()
