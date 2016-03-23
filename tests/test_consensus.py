@@ -86,7 +86,7 @@ class ConsesusExampleTest(unittest.TestCase):
         self.assertEquals(expected, result)
 ref_with_vcf_dicts_strategy = ref_with_vcf_dicts_strategy_factory().map(
     #lambda (r, muts): (make_seqrec(muts[0]['chrom'], r), map(lambda d: VCFRow(**d), muts)))
-    lambda tup: (make_seqrec(tup[1][0]['chrom'], tup[0]), map(lambda d: VCFRow(QA=pos_int,QR=pos_int,**d), tup[1])))
+    lambda tup: (make_seqrec(tup[1][0]['chrom'], tup[0]), map(lambda d: VCFRow(**d), tup[1])))
 
 countof = lambda c: lambda x: Counter(x).get(c, 0)
 def run_cons(*args):
