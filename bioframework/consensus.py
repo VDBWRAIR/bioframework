@@ -84,8 +84,8 @@ def call_base_multi_alts(min_depth, majority_percentage, dp, alts, ref):
     (call each base) based on the given rules (using call_base)."""
     #TODO: majority_percentage gets ignored, so replace constants
     #TODO: behavior is undefined if sum(AO) > dp.
-#    if dp < min_depth: #could call REF here sometimes
-#        return 'N'
+    if dp < min_depth: #could call REF here sometimes
+        return 'N'
 
 #    """
 #    1) "if the total quality of the alternates is < 200 (25 * 8), don't call it an alternate."
