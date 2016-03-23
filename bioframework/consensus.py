@@ -86,6 +86,21 @@ def call_base_multi_alts(min_depth, majority_percentage, dp, alts, ref):
     #TODO: behavior is undefined if sum(AO) > dp.
 #    if dp < min_depth: #could call REF here sometimes
 #        return 'N'
+
+#    """
+#    1) "if the total quality of the alternates is < 200 (25 * 8), don't call it an alternate."
+#    2) "if the total quality of the references is < 200, don't call the reference."
+#    3) "if neither the reference nor the alternate can be called, call an N."
+#    """
+#    altsTooLow = sum(map(lambda x: x.QA)) < 200
+#    refTooLow = alts[0].QR < 200
+#
+#    if altsTooLow and refTooLow:
+#        return 'N'
+#
+#    elif altsTooLow:
+#        return ref
+
     get_ao = lambda x: x.AO
     total_ao = sum(map(get_ao, alts))
 
