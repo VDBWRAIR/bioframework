@@ -2,6 +2,7 @@ from __future__ import division
 from biotest.biohypothesis import ref_with_vcf_dicts_strategy_factory, \
     make_seqrec, vcf_dict_strategy_factory
 from hypothesis import given
+from collections import Counter
 #from fn import _
 from hypothesis import strategies as st
 from hypothesis import given, assume
@@ -84,8 +85,9 @@ class ConsesusExampleTest(unittest.TestCase):
         result = just_ref([ref], muts, 10, 80)
         self.assertEquals(expected, result)
 ref_with_vcf_dicts_strategy = ref_with_vcf_dicts_strategy_factory().map(
-    lambda (r, muts): (make_seqrec(muts[0]['chrom'], r), map(lambda d: VCFRow(**d), muts)))
-from collections import Counter
+    #lambda (r, muts): (make_seqrec(muts[0]['chrom'], r), map(lambda d: VCFRow(**d), muts)))
+    lambda tup: (make_seqrec(tup[1][0]['chrom'], tup[0]), map(lambda d: VCFRow(QA=pos_int,QR=pos_int,**d), tup[1])))
+
 countof = lambda c: lambda x: Counter(x).get(c, 0)
 def run_cons(*args):
     _, alt_and_cons = all_consensuses(*args)

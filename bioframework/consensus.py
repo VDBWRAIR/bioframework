@@ -10,9 +10,12 @@ Options:
     --output,-o=<output>       output file [default: ]
 """
 #stdlib
+#TO type-check: (requires python3)
+# $ MYPYPATH=$HOME/bioframework/mypy mypy --py2 --disallow-untyped-calls  bioframework/consensus.py
+
 from operator import itemgetter as get
 from functools import partial
-from itertools import ifilter, imap, groupby, takewhile, repeat, starmap, izip_longest
+from itertools import ifilter, ifilterfalse, imap, groupby, takewhile, repeat, starmap, izip_longest
 import os, sys
 import collections
 
@@ -25,8 +28,8 @@ from vcf.model import _Record
 import sh #todo
 #from toolz import compose
 from toolz.dicttoolz import merge, dissoc, merge_with, valfilter, keyfilter #done
-from docopt import docopt #ignore
-from schema import Schema, Use #ignore
+#from docopt import docopt #ignore
+#from schema import Schema, Use #ignore
 #from contracts import contract, new_contract #can ignore
 #from mypy.types import VCFRow
 #############
@@ -45,7 +48,7 @@ AMBIGUITY_TABLE = { 'A': 'A', 'T': 'T', 'G': 'G', 'C': 'C', 'N': 'N', 'AC': 'M',
 
 MAJORITY_PERCENTAGE = 80
 MIN_DEPTH = 10
-#PMut = NamedTuple('PMut', [('AO', int), ('DP', int), ('QA', int), ('QR', int)])
+PMut = NamedTuple('PMut', [('ALT', str), ('AO', int), ('DP', int), ('QA', int), ('QR', int)])
 Mut = Tuple[str, str, int]
 ###########
 # Reducer #
@@ -55,7 +58,7 @@ def make_consensus(reference, muts):
     # type: (str, List[Mut]) -> Tuple[str, List[Mut]]
     ''' Actually builds a consensus string by recursively applying
           the mutations.'''
-    def _do_build(t1, t2): # type: (Tuple[int,str,int], Tuple[str,str,int]) -> Tuple[str,str,int]
+    def _do_build(t1, t2): # type: (Tuple[str,str,int], Tuple[str,str,int]) -> Tuple[str,str,int]
         (accString, string, lastPos), (x, y, bigPos) = t1, t2
         pos = bigPos - lastPos
         return (accString + (string[:pos] + y), string[pos+len(x):],  bigPos+len(x))
@@ -74,7 +77,7 @@ def make_consensus(reference, muts):
 
 #@contract(min_depth='number,>=0', majority_percentage='number,>=0,<=100',dp='number,>=0', ref='string|None',alts='dict(string: number)')
 def call_base_multi_alts(min_depth, majority_percentage, dp, alts, ref):
-    # type: (int, int, int, Dict[str, int], str) -> str
+    # type: (int, int, int, List[PMut], str) -> str
     """when there are multiple alts, zip through with each of them
     zip(*alts), character by character. compare the percentages, and
     sum the percentages for each base. (groupby, sum) pick each character
@@ -83,58 +86,81 @@ def call_base_multi_alts(min_depth, majority_percentage, dp, alts, ref):
     #TODO: behavior is undefined if sum(AO) > dp.
 #    if dp < min_depth: #could call REF here sometimes
 #        return 'N'
-    total_ao = lambda: sum(alts.values()) # avoid evaluating unless necessary
+    get_ao = lambda x: x.AO
+    total_ao = sum(map(get_ao, alts))
 
     if ref is None: # this is an insert
-        if total_ao()/float(dp) < .50:
+        if total_ao/float(dp) < .50:
             return ref
         # if the insert is above threshold, keep going and call the insert like a normal base
-    if '-' in alts:
-        if alts['-']/float(dp) > .50: # a deletion
+    is_insert = lambda x: x.ALT == '-' # type: Callable[[PMut],bool]
+    inserts = list(filter(is_insert, alts))
+    if inserts:
+        assert len(inserts) == 1
+        ins = inserts[0]
+        if ins.AO/float(dp) > .50: # a deletion
             return ''
-        dp -= alts['-']
-        alts_without_insert = dissoc(alts, '-')
+        dp -= ins.AO
+        alts_without_insert = list(ifilterfalse(is_insert, alts))
     else:
         alts_without_insert = alts
-    over_depth = lambda x: lambda depth: depth/float(dp) > x
-    picked_alt = valfilter(over_depth(0.8), alts_without_insert)
+    over_depth = lambda x: lambda y: y.AO/float(dp) > x
+    picked_alt = filter(over_depth(0.8), alts_without_insert)
     if picked_alt:
-        return picked_alt.keys()[0]
+        return picked_alt[0].ALT
     #add ref so that it will be considered in creating ambiguous base
-    alts_with_ref = merge(alts_without_insert, ({ref : (dp - total_ao()) } if ref else {}))
-    over20 = valfilter(over_depth(0.2), alts_with_ref)
-    as_ambiguous = ''.join(sorted(over20.keys()))
+    if ref:
+        alts.append(PMut(ALT=ref, AO=(dp-total_ao), DP=dp, QA=-1, QR=-1))
+    over20 = filter(over_depth(0.2), alts)
+    as_ambiguous = ''.join(sorted(map(lambda x: x.ALT, over20)))
     # this could return a single base, (including the reference), becuase i.e.  A => A in the ambiguity table
     return AMBIGUITY_TABLE[as_ambiguous] if as_ambiguous != '' else ''
 
-#@contract(min_depth='number,>=0', majority_percentage='number,>=0,<=100', rec='dict', returns='tuple(string, string, int)')
-def call_many(min_depth, majority_percentage, rec):
-    # type: (int, int, VCFRow) -> Mut
-    #TODO: switch to generators
-    muts = zip(rec.AO, rec.alt)
-    ref, dp, pos = rec.ref, rec.DP, rec.pos
+def pmuts_from_row(row):
+    # type: (VCFRow) -> List[PMut]
+    muts = zip(row.QA, row.AO, row.alt)
     longest_len = max(map(lambda x: len(x[-1]), muts))
-    longest_len = max(longest_len, len(ref))
+    longest_len = max(longest_len, len(row.ref))
     def fill_gap(r):
-        ao, s = r
-        return (ao, str(s) + (longest_len - len(s)) * '-')
-    xs = map(fill_gap, muts) # fill in the shorter alts with '-'.
+        qa, ao, s = r
+        return (qa, ao, str(s) + (longest_len - len(s)) * '-')
     def merge_sum(x,y):
-        return x if y is None else (y if x is None else merge_with(sum, x, y))
+        def combine(tups):
+            return sum(map(get(0), tups)), sum(map(get(1), tups))
+        #return x if y is None else (y if x is None else merge_with(sum, x, y))
+        return x if y is None else (y if x is None else merge_with(combine, x, y))
     def seq_count(acc, ao_and_nts):
-        ao, nts = ao_and_nts
-        return map(merge_sum, acc, [{nt:ao} for nt in nts])
+        qa, ao, nts = ao_and_nts
+        #return map(merge_sum, acc, [{nt:ao, 'qa': qa} for nt in nts])
+        return map(merge_sum, acc, [{nt:(ao, qa)} for nt in nts])
+    xs = map(fill_gap, muts) # fill in the shorter alts with '-'.
     # create a list of {base : count}, where the index matches the position
     mut_dicts = reduce(seq_count, xs, [{}]) # type: Iterable[Dict[str,int]]
-    base_caller = lambda m,r: call_base_multi_alts(min_depth, majority_percentage, dp, m, r) #   # # ?Callable[[Dict[Any,Any], str], str]
-    res = map(base_caller, mut_dicts, ref)
+    def to_pmuts(d): # type: (Dict[str,int]) -> List[PMut]
+        #qa = d.pop('qa')
+        #assert len(d.values()) == 1
+        make = lambda k,v: PMut(k, AO=v[0], QA=v[1], DP=row.DP,QR=row.QR)
+        return list(starmap(make, d.items()))
+#        res = PMut(d.keys()[0], d.values()[0], row.DP, qa, row.QR)
+#        return res
+    res = list(map(to_pmuts, mut_dicts))
+    return res
+
+def call_many(min_depth, majority_percentage, rec):
+    # type: (int, int, VCFRow) -> Mut
+    muts_by_column = pmuts_from_row(rec)
+    #TODO: switch to generators
+    base_caller = lambda m,r: call_base_multi_alts(
+        min_depth, majority_percentage, rec.DP, m, r) #   # # ?Callable[[Dict[Any,Any], str], str]
+    res = map(base_caller, muts_by_column, rec.ref)
     # trim None values at the end, (which indicate deletion)
     result = takewhile(bool, res)
-    return (ref, ''.join(result), pos)
+    return (rec.ref, ''.join(result), rec.pos)
 
 #@contract(rec='dict',returns='dict')
 def flatten_vcf_record(rec):
     # type: (_Record) -> VCFRow
+    fields = ['ref', 'AO', 'DP', 'QA', 'QR', 'chrom' 'pos', 'alt']
     _rec = merge({
   'alt' : rec.ALT, 'ref' : rec.REF,
   'pos' : rec.POS, 'chrom' : rec.CHROM},
@@ -144,7 +170,7 @@ def flatten_vcf_record(rec):
                              AO=[_rec['AO']],
                              QA=[_rec['QA']]))
     else: d = _rec
-    d = keyfilter(VCFRow._fields.__contains__, d)
+    d = keyfilter(fields.__contains__, d)
     return VCFRow(**d)
 
 ##############
@@ -226,17 +252,21 @@ def run(ref_fasta, freebayes_vcf, outfile, mind, majority):
         outfile.close()
     return 0
 
-def main(): # type: () -> None
-    scheme = Schema(
-        { '--vcf' : os.path.isfile,
-          '--ref' : os.path.isfile,
-          '--majority' : Use(int),
-          '--mind' : Use(int),
-          '--output' : Use(lambda x: sys.stdout if not x else open(x, 'w'))})
-    raw_args = docopt(__doc__, version='Version 1.0')
-    args = scheme.validate(raw_args)
-    run(args['--ref'], args['--vcf'], args['--output'],
-        args['--mind'], args['--output'])
 
-if __name__ == '__main__':
-    main()
+
+
+
+#def main(): # type: () -> None
+#    scheme = Schema(
+#        { '--vcf' : os.path.isfile,
+#          '--ref' : os.path.isfile,
+#          '--majority' : Use(int),
+#          '--mind' : Use(int),
+#          '--output' : Use(lambda x: sys.stdout if not x else open(x, 'w'))})
+#    raw_args = docopt(__doc__, version='Version 1.0')
+#    args = scheme.validate(raw_args)
+#    run(args['--ref'], args['--vcf'], args['--output'],
+#        args['--mind'], args['--output'])
+
+#if __name__ == '__main__':
+#    main()
