@@ -18,7 +18,13 @@ setup(
     description = bioframework.__description__,
     license = "GPLv2",
     keywords = bioframework.__keywords__,
+    # scripts = glob('scripts/*'),
+    scripts = ['scripts/consensus.sh'],
     entry_points = {
+        'console_scripts': [
+            'tagreads = bioframework.tagreads:main',
+            'fb_consensus = bioframework.consensus:main'
+        ]
     },
     install_requires = [
         'pyjip',

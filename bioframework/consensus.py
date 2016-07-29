@@ -22,7 +22,7 @@ from Bio import SeqIO #done
 from Bio.SeqRecord import SeqRecord #done
 import vcf #done
 from vcf.model import _Record
-import sh #todo
+# import sh #todo
 #from toolz import compose
 from toolz.dicttoolz import merge, dissoc, merge_with, valfilter, keyfilter #done
 from docopt import docopt #ignore
@@ -200,10 +200,10 @@ def all_consensuses(references, muts, mind, majority):
 def consensus_str(ref, consensus): # type: (SeqRecord, str) -> str
     return ">{0}:Consensus\n{1}".format(ref.id, consensus)
 
-def zero_coverage_positions(bam_file, ref_file): # type: (str, str) -> Iterable[int]
-    pileup = sh.Command('mpileup')(bam_file, f=ref_file, _iter=True)
-    get_pos = lambda x: int(x.split()[1]) # type: Callable[[str],int]
-    return imap(get_pos, pileup)
+#def zero_coverage_positions(bam_file, ref_file): # type: (str, str) -> Iterable[int]
+#    pileup = sh.Command('mpileup')(bam_file, f=ref_file, _iter=True)
+#    get_pos = lambda x: int(x.split()[1]) # type: Callable[[str],int]
+#    return imap(get_pos, pileup)
 
 #TODO: is pileup 0-based or 1-based index?
 def trim_ref(ref, positions): # type: (str, Iterator[int]) -> str
