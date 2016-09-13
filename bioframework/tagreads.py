@@ -155,14 +155,19 @@ def get_bam_header( bam ):
     return hdr.rstrip()
 
 def parse_args( args=sys.argv[1:] ):
-    from ngs_mapper import config
-    conf_parser, args, config, configfile = config.get_config_argparse(args)
-    defaults = config['tagreads']
+    defaults = { 'SM' : { 'default' : None,
+                         'help' : 'Sets the SM tag value inside of each read group. Default is the portion of the filname that preceeds the .bam[Default: %(default)s]'
+                         },
+                 'CN' : { 'default' : None,
+                         'help' : 'Sets the CN tag inside of each read group to the value specified.[Default: %(default)s]'
+                         }
+                }
+
+                #         config['tagreads']
 
     parser = argparse.ArgumentParser(
         description='''Adds Sanger, MiSeq, 454 and IonTorrent read groups to a bam file.
         Will tag all reads in the alignment for each of the platforms based on the read name''',
-        parents=[conf_parser]
     )
 
     parser.add_argument(

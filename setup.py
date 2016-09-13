@@ -22,7 +22,7 @@ setup(
     scripts = ['scripts/consensus.sh'],
     entry_points = {
         'console_scripts': [
-            'tagreads = bioframework.tagreads:main',
+            'fb_tagreads = bioframework.tagreads:main',
             'fb_consensus = bioframework.consensus:main'
         ]
     },

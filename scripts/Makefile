@@ -8,7 +8,7 @@ FBCONSENSUS=$(NGSDIR)/freebayes_consensus.fasta
 all: $(FBCONSENSUS)
 
 $(TAGGED): $(BAM)
-	python tagreads.py $< | samtools view  - -Sbh | samtools sort - $(TAGGED:.bam=)
+	fb_tagreads $< | samtools view  - -Sbh | samtools sort - $(TAGGED:.bam=)
 
 $(TAGGED).bai: $(TAGGED)
 	samtools index $<
@@ -16,6 +16,6 @@ $(TAGGED).bai: $(TAGGED)
 $(FBVCF): $(TAGGED) $(NGSDIR)/tagged.bam.bai $(REF)
 	freebayes -f $(REF) $< > $@
 
-$(FBCONSENSUS): $(BAM) $(REF) $(FBVCF) 
-	python consensus.py --vcf $< --ref $(REF) > $@
-	#cd ~/bioframes && python bioframes/consensus.py $^ > $@
+$(FBCONSENSUS):  $(FBVCF) $(REF)
+	fb_consensus --vcf $< --ref $(REF) > $@
+#cd ~/bioframes && python bioframes/consensus.py $^ > $@
