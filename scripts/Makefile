@@ -1,10 +1,10 @@
 
-BAM=$(NGSDIR)/$(notdir $(NGSDIR)).bam
-REF=$(NGSDIR)/$(notdir $(NGSDIR)).ref.fasta
+SAMPLE=$(notdir $(NGSDIR))
+BAM=$(NGSDIR)/$(SAMPLE).bam
+REF=$(NGSDIR)/$(SAMPLE).ref.fasta
 TAGGED=$(NGSDIR)/tagged.bam
 FBVCF=$(NGSDIR)/freebayes.vcf
 FBCONSENSUS=$(NGSDIR)/$(SAMPLE).freebayes_consensus.fasta
-SAMPLE=$(basename $(NGSDIR))
 
 all: $(FBCONSENSUS)
 
@@ -18,5 +18,5 @@ $(FBVCF): $(TAGGED) $(NGSDIR)/tagged.bam.bai $(REF)
 	freebayes -f $(REF) $< > $@
 
 $(FBCONSENSUS):  $(FBVCF) $(REF)
-	fb_consensus --vcf $< --ref $(REF) > $@
+	fb_consensus --vcf $< --ref $(REF) --sample $(SAMPLE) > $@
 #cd ~/bioframes && python bioframes/consensus.py $^ > $@
