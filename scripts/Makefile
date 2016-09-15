@@ -3,7 +3,8 @@ BAM=$(NGSDIR)/$(notdir $(NGSDIR)).bam
 REF=$(NGSDIR)/$(notdir $(NGSDIR)).ref.fasta
 TAGGED=$(NGSDIR)/tagged.bam
 FBVCF=$(NGSDIR)/freebayes.vcf
-FBCONSENSUS=$(NGSDIR)/freebayes_consensus.fasta
+FBCONSENSUS=$(NGSDIR)/$(SAMPLE).freebayes_consensus.fasta
+SAMPLE=$(basename $(NGSDIR))
 
 all: $(FBCONSENSUS)
 
