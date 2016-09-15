@@ -1,12 +1,13 @@
 """
 Usage:
-     consensus --ref <ref> --vcf <vcf> [--mind <mind>] [--majority <majority>] [-o <output>]
+     consensus --ref <ref> --vcf <vcf> [--mind <mind>] [--majority <majority>] [-o <output>] [--sample <sample>]
 
 Options:
     --ref=<ref>             Reference fasta file
     --vcf=<vcf>             VCF output
     --majority=<majority>   Percentage required [default: 80]
     --mind=<mind>           minimum depth to call base non-N [default: 10]
+    --sample=<sample>       sample name
     --output,-o=<output>       output file [default: ]
 """
 #stdlib
@@ -26,7 +27,7 @@ from vcf.model import _Record
 #from toolz import compose
 from toolz.dicttoolz import merge, dissoc, merge_with, valfilter, keyfilter #done
 from docopt import docopt #ignore
-from schema import Schema, Use #ignore
+from schema import Schema, Use, Optional #ignore
 #from contracts import contract, new_contract #can ignore
 #from mypy.types import VCFRow
 #############
@@ -197,8 +198,8 @@ def all_consensuses(references, muts, mind, majority):
 ##########
 # I/O    #
 ##########
-def consensus_str(ref, consensus): # type: (SeqRecord, str) -> str
-    return ">{0}:Consensus\n{1}".format(ref.id, consensus)
+def consensus_str(sample, ref, consensus): # type: (SeqRecord, str) -> str
+    return ">{0}_{1}:Consensus\n{2}".format(sample if sample else '', ref.id, consensus)
 
 #def zero_coverage_positions(bam_file, ref_file): # type: (str, str) -> Iterable[int]
 #    pileup = sh.Command('mpileup')(bam_file, f=ref_file, _iter=True)
@@ -213,14 +214,14 @@ def trim_ref(ref, positions): # type: (str, Iterator[int]) -> str
 
 
 #@contract(ref_fasta=str, vcf=str, mind=int, majority=int)
-def run(ref_fasta, freebayes_vcf, outfile, mind, majority):
+def run(ref_fasta, freebayes_vcf, outfile, mind, majority, sample):
     # type: (str, str, BinaryIO, int, int) -> int
     _refs = SeqIO.parse(ref_fasta, 'fasta')
     with open(freebayes_vcf, 'r') as vcf_handle:
         _muts = map(flatten_vcf_record, vcf.Reader(vcf_handle))
         refs, muts = list(_refs), list(_muts)
         the_refs, seqs_and_muts = all_consensuses(refs, muts, mind, majority)
-        strings = imap(consensus_str, the_refs, imap(get(0), seqs_and_muts))
+        strings = imap(partial(consensus_str, sample), the_refs, imap(get(0), seqs_and_muts))
         result = '\n'.join(strings)
         outfile.write(result)
         outfile.close()
@@ -230,13 +231,14 @@ def main(): # type: () -> None
     scheme = Schema(
         { '--vcf' : os.path.isfile,
           '--ref' : os.path.isfile,
+         Optional('--sample') : lambda x: True,
           '--majority' : Use(int),
           '--mind' : Use(int),
           '--output' : Use(lambda x: sys.stdout if not x else open(x, 'w'))})
     raw_args = docopt(__doc__, version='Version 1.0')
     args = scheme.validate(raw_args)
     run(args['--ref'], args['--vcf'], args['--output'],
-        args['--mind'], args['--output'])
+        args['--mind'], args['--output'], args['--sample'])
 
 if __name__ == '__main__':
     main()
