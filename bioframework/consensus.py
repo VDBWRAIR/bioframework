@@ -28,6 +28,7 @@ from vcf.model import _Record
 from toolz.dicttoolz import merge, dissoc, merge_with, valfilter, keyfilter #done
 from docopt import docopt #ignore
 from schema import Schema, Use, Optional #ignore
+from plumbum.cmd import samtools
 #from contracts import contract, new_contract #can ignore
 #from mypy.types import VCFRow
 #############
@@ -211,6 +212,16 @@ def trim_ref(ref, positions): # type: (str, Iterator[int]) -> str
     start, end = next(positions), collections.deque(positions, 1)[0]
     return '-'*start + ref[:start:end] + '-'*(len(ref) - end)
 
+def samtoolsDepth(bam):
+    lines = samtools['depth'][bam]().split('\n')
+    lines = map(str.split, lines)
+    stats = map(lambda x: { 'pos' : int(x[1]), 'depth' : int(x[2]) }, lines)
+    return stats
+
+def uncoveredPositions(reqDepth, bam):
+    depthStats = samtoolsDepth(bam)
+    underStats = filter(lambda x: x['depth'] < reqDepth, depthStats)
+    return map(lambda x: x['pos'], underStats)
 
 
 #@contract(ref_fasta=str, vcf=str, mind=int, majority=int)
