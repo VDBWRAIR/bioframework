@@ -1,6 +1,6 @@
 """
 Usage:
-     consensus --ref <ref> --vcf <vcf> [--mind <mind>] [--majority <majority>] [-o <output>] [--sample <sample>]
+     consensus --ref <ref> --vcf <vcf> [--mind <mind>] [--majority <majority>] [-o <output>] [--sample <sample>] [--bam <bam>]
 
 Options:
     --ref=<ref>             Reference fasta file
@@ -8,9 +8,15 @@ Options:
     --majority=<majority>   Percentage required [default: 80]
     --mind=<mind>           minimum depth to call base non-N [default: 10]
     --sample=<sample>       sample name
-    --output,-o=<output>       output file [default: ]
+    --bam=<bam>             bam file, required to check for coverage
+    --output,-o=<output>    output file [default: ]
 """
 #stdlib
+# fb_consensus --ref
+# /media/VD_Research/Analysis/ProjectBased_Analysis/melanie/share/Issue_11973_freeBayes_MP/Dengue/Issue_12657_80-20/Projects/2195/Den3__Thailand__FJ744727__2001.fasta
+# --bam $dir/tagged.bam --mind 10 --vcf
+# /media/VD_Research/Analysis/ProjectBased_Analysis/melanie/share/Issue_11973_freeBayes_MP/Dengue/Issue_12657_80-20/Projects/2195/freebayes.vcf
+
 from operator import itemgetter as get
 from functools import partial
 from itertools import ifilter, imap, groupby, takewhile, repeat, starmap, izip_longest
@@ -21,6 +27,8 @@ from typing import Tuple, Dict, List, Iterator, Iterable, Any, Callable, NamedTu
 
 from Bio import SeqIO #done
 from Bio.SeqRecord import SeqRecord #done
+from Bio.Seq import Seq
+
 import vcf #done
 from vcf.model import _Record
 # import sh #todo
@@ -212,25 +220,56 @@ def trim_ref(ref, positions): # type: (str, Iterator[int]) -> str
     start, end = next(positions), collections.deque(positions, 1)[0]
     return '-'*start + ref[:start:end] + '-'*(len(ref) - end)
 
-def samtoolsDepth(bam):
-    lines = samtools['depth'][bam]().split('\n')
-    lines = map(str.split, lines)
+# def samtoolsDepth(bam):
+#     lines = samtools['depth'][bam]().split('\n')
+#     lines = map(str.split, lines)
+#     stats = map(lambda x: { 'pos' : int(x[1]), 'depth' : int(x[2]) }, lines)
+#     return stats
+
+def samtoolsDepth(ref_id, bam):
+    lines = samtools['depth'][bam, '-r', ref_id]().split('\n')
+    lines = filter(lambda x: x.strip(), lines)
+    lines = map(lambda x: x.split('\t'), lines)
     stats = map(lambda x: { 'pos' : int(x[1]), 'depth' : int(x[2]) }, lines)
     return stats
 
-def uncoveredPositions(reqDepth, bam):
-    depthStats = samtoolsDepth(bam)
-    underStats = filter(lambda x: x['depth'] < reqDepth, depthStats)
-    return map(lambda x: x['pos'], underStats)
+#def uncoveredPositions(mind, bam):
+#    depthStats = samtoolsDepth(bam)
+#    underStats = filter(lambda x: x['depth'] < mind, depthStats)
+#    return map(lambda x: x['pos'], underStats)
 
+def uncoveredPositions(mind, bam, ref):
+    depthStats = samtoolsDepth(str(ref.id), bam) # use ref string
+    allPositions = range(1, len(ref.seq)+1)
+    underStats = filter(lambda x: x['depth'] < mind, depthStats)
+    underPositions = map(lambda x: x['pos'], underStats)
+    allDepthPositions = map(lambda x: x['pos'], depthStats)
+    zeroPositions = set(allPositions) - set(allDepthPositions)
+    return set(underPositions) | zeroPositions
+    # return map(lambda x: x['pos'], underStats)
+
+#def addNsAtUncovered(positions, ref):
+#    new_ref = ref
+#    for pos in positions:
+#        new_ref[pos-1] = 'N'
+#    return new_ref
+
+
+def addNsAtUncovered(mind, bam, ref_seq):
+    badPositions = uncoveredPositions(mind, bam, ref_seq)
+    new_ref = list(str(ref_seq.seq))
+    for pos in badPositions:
+        new_ref[pos-1] = 'N'
+    return SeqRecord(seq=Seq(''.join(new_ref)), id=ref_seq.id)
 
 #@contract(ref_fasta=str, vcf=str, mind=int, majority=int)
-def run(ref_fasta, freebayes_vcf, outfile, mind, majority, sample):
+def run(ref_fasta, freebayes_vcf, outfile, mind, majority, sample, bam):
     # type: (str, str, BinaryIO, int, int) -> int
     _refs = SeqIO.parse(ref_fasta, 'fasta')
     with open(freebayes_vcf, 'r') as vcf_handle:
         _muts = map(flatten_vcf_record, vcf.Reader(vcf_handle))
         refs, muts = list(_refs), list(_muts)
+        refs = map(partial(addNsAtUncovered, mind, bam), refs)
         the_refs, seqs_and_muts = all_consensuses(refs, muts, mind, majority)
         strings = imap(partial(consensus_str, sample), the_refs, imap(get(0), seqs_and_muts))
         result = '\n'.join(strings)
@@ -243,13 +282,14 @@ def main(): # type: () -> None
         { '--vcf' : os.path.isfile,
           '--ref' : os.path.isfile,
          Optional('--sample') : lambda x: True,
+         Optional('--bam') : lambda x: True,
           '--majority' : Use(int),
           '--mind' : Use(int),
           '--output' : Use(lambda x: sys.stdout if not x else open(x, 'w'))})
     raw_args = docopt(__doc__, version='Version 1.0')
     args = scheme.validate(raw_args)
     run(args['--ref'], args['--vcf'], args['--output'],
-        args['--mind'], args['--output'], args['--sample'])
+        args['--mind'], args['--output'], args['--sample'], args['--bam'])
 
 if __name__ == '__main__':
     main()

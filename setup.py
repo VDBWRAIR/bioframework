@@ -32,7 +32,8 @@ setup(
         'docopt',
         'schema',
         'pyvcf',
-        'typing'
+        'typing',
+        'plumbum'
     ],
     data_files=[
         (join(sys.prefix,'bin'), jip_modules()),
