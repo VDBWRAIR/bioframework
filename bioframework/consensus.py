@@ -1,6 +1,6 @@
 """
 Usage:
-     consensus --ref <ref> --vcf <vcf> [--mind <mind>] [--majority <majority>] [-o <output>] [--sample <sample>] [--bam <bam>]
+     consensus --ref <ref> --vcf <vcf> [--mind <mind>] [--majority <majority>] [-o <output>] [--sample <sample>] [--bam <bam>] [--minbq <minbq>]
 
 Options:
     --ref=<ref>             Reference fasta file
