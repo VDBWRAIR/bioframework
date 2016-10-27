@@ -238,7 +238,7 @@ def samtoolsDepth(ref_id, bam):
 #    underStats = filter(lambda x: x['depth'] < mind, depthStats)
 #    return map(lambda x: x['pos'], underStats)
 
-def uncoveredPositions(mind, bam, ref):
+def uncoveredPositions(mind, minbq, bam, ref):
     depthStats = samtoolsDepth(str(ref.id), bam) # use ref string
     allPositions = range(1, len(ref.seq)+1)
     underStats = filter(lambda x: x['depth'] < mind, depthStats)
@@ -255,21 +255,21 @@ def uncoveredPositions(mind, bam, ref):
 #    return new_ref
 
 
-def addNsAtUncovered(mind, bam, ref_seq):
-    badPositions = uncoveredPositions(mind, bam, ref_seq)
+def addNsAtUncovered(mind, minbq, bam, ref_seq):
+    badPositions = uncoveredPositions(mind, minbq, bam, ref_seq)
     new_ref = list(str(ref_seq.seq))
     for pos in badPositions:
         new_ref[pos-1] = 'N'
     return SeqRecord(seq=Seq(''.join(new_ref)), id=ref_seq.id)
 
 #@contract(ref_fasta=str, vcf=str, mind=int, majority=int)
-def run(ref_fasta, freebayes_vcf, outfile, mind, majority, sample, bam):
+def run(ref_fasta, freebayes_vcf, outfile, mind, minbq, majority, sample, bam):
     # type: (str, str, BinaryIO, int, int) -> int
     _refs = SeqIO.parse(ref_fasta, 'fasta')
     with open(freebayes_vcf, 'r') as vcf_handle:
         _muts = map(flatten_vcf_record, vcf.Reader(vcf_handle))
         refs, muts = list(_refs), list(_muts)
-        refs = map(partial(addNsAtUncovered, mind, bam), refs)
+        refs = map(partial(addNsAtUncovered, mind, minbq, bam), refs)
         the_refs, seqs_and_muts = all_consensuses(refs, muts, mind, majority)
         strings = imap(partial(consensus_str, sample), the_refs, imap(get(0), seqs_and_muts))
         result = '\n'.join(strings)
@@ -285,11 +285,12 @@ def main(): # type: () -> None
          Optional('--bam') : lambda x: True,
           '--majority' : Use(int),
           '--mind' : Use(int),
+          '--minbq' : Use(int),
           '--output' : Use(lambda x: sys.stdout if not x else open(x, 'w'))})
     raw_args = docopt(__doc__, version='Version 1.0')
     args = scheme.validate(raw_args)
     run(args['--ref'], args['--vcf'], args['--output'],
-        args['--mind'], args['--output'], args['--sample'], args['--bam'])
+        args['--mind'], args['--minbq'], args['--output'], args['--sample'], args['--bam'])
 
 if __name__ == '__main__':
     main()
