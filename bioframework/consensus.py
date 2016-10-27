@@ -7,6 +7,7 @@ Options:
     --vcf=<vcf>             VCF output
     --majority=<majority>   Percentage required [default: 80]
     --mind=<mind>           minimum depth to call base non-N [default: 10]
+    --minbq=<mind>          bases below this quality are ignored when computing depth [default: 0]
     --sample=<sample>       sample name
     --bam=<bam>             bam file, required to check for coverage
     --output,-o=<output>    output file [default: ]
@@ -226,8 +227,8 @@ def trim_ref(ref, positions): # type: (str, Iterator[int]) -> str
 #     stats = map(lambda x: { 'pos' : int(x[1]), 'depth' : int(x[2]) }, lines)
 #     return stats
 
-def samtoolsDepth(ref_id, bam):
-    lines = samtools['depth'][bam, '-r', ref_id]().split('\n')
+def samtoolsDepth(ref_id, bam, minbq):
+    lines = samtools['depth'][bam, '-r', ref_id, '-q', minbq]().split('\n')
     lines = filter(lambda x: x.strip(), lines)
     lines = map(lambda x: x.split('\t'), lines)
     stats = map(lambda x: { 'pos' : int(x[1]), 'depth' : int(x[2]) }, lines)
@@ -239,7 +240,7 @@ def samtoolsDepth(ref_id, bam):
 #    return map(lambda x: x['pos'], underStats)
 
 def uncoveredPositions(mind, minbq, bam, ref):
-    depthStats = samtoolsDepth(str(ref.id), bam) # use ref string
+    depthStats = samtoolsDepth(str(ref.id), bam, minbq) # use ref string
     allPositions = range(1, len(ref.seq)+1)
     underStats = filter(lambda x: x['depth'] < mind, depthStats)
     underPositions = map(lambda x: x['pos'], underStats)
