@@ -5,6 +5,8 @@ REF=$(NGSDIR)/$(SAMPLE).ref.fasta
 TAGGED=$(NGSDIR)/tagged.bam
 FBVCF=$(NGSDIR)/freebayes.vcf
 FBCONSENSUS=$(NGSDIR)/$(SAMPLE).freebayes_consensus.fasta
+# MIND=0
+# MINBQ=0
 
 all: $(FBCONSENSUS)
 
@@ -18,5 +20,6 @@ $(FBVCF): $(TAGGED) $(NGSDIR)/tagged.bam.bai $(REF)
 	freebayes -f $(REF) $< > $@
 
 $(FBCONSENSUS):  $(FBVCF) $(REF)
-	fb_consensus --vcf $< --ref $(REF) --sample $(SAMPLE) > $@
+	#fb_consensus --vcf $< --ref $(REF) --sample $(SAMPLE) > $@
+	fb_consensus --vcf $< --ref $(REF) --sample $(SAMPLE) --bam $(TAGGED) --mind $(MIND) --minbq $(MINBQ) > $@
 #cd ~/bioframes && python bioframes/consensus.py $^ > $@
