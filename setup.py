@@ -23,8 +23,13 @@ setup(
     install_requires = [
         'pyjip',
         'toolz',
+        'docopt',
+        'schema',
+        'pyvcf',
+        'typing'
     ],
     data_files=[
         (join(sys.prefix,'bin'), jip_modules()),
     ]
 )
+

@@ -1,0 +1,16 @@
+
+#!/usr/bin/env jip
+#
+# run freebayes
+#
+# Usage:
+#   run_freebayes [<input>] -f <reference> [-o <output>]
+#
+# Options:
+#   -o, --output=<output>       Output fastq. If input was interleave, output will be as well
+#   -f,                         The reference
+#                               the input is assumed to be unpaired fastq
+# Help:
+#    Requires a bam file (<input>) and a reference (-f)
+
+freebayes ${input|else("-")} ${reference|arg} ${output|arg(">")}
